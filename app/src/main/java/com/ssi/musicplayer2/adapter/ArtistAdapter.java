@@ -30,7 +30,7 @@ public class ArtistAdapter extends RecyclerView.Adapter<ArtistAdapter.ViewHolder
         this.dbManager = DBManager.getInstance(context);
     }
 
-    static class ViewHolder extends RecyclerView.ViewHolder{
+    static class ViewHolder extends RecyclerView.ViewHolder {
         LinearLayout contentLl;
         ImageView singerIv;
         TextView singelName;
@@ -38,34 +38,38 @@ public class ArtistAdapter extends RecyclerView.Adapter<ArtistAdapter.ViewHolder
 
         public ViewHolder(View itemView) {
             super(itemView);
-            this.contentLl = (LinearLayout) itemView.findViewById(R.id.model_music_item_ll);
-            this.singerIv = (ImageView) itemView.findViewById(R.id.model_head_iv);
-            this.singelName = (TextView) itemView.findViewById(R.id.model_item_name);
-            this.count = (TextView) itemView.findViewById(R.id.model_music_count);
-//            this.deleteBtn = (Button) itemView.findViewById(R.id.model_swip_delete_menu_btn);
+            this.contentLl = itemView.findViewById(R.id.model_music_item_ll);
+            this.singerIv = itemView.findViewById(R.id.model_head_iv);
+            this.singelName = itemView.findViewById(R.id.model_item_name);
+            this.count = itemView.findViewById(R.id.model_music_count);
         }
 
     }
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(context).inflate(R.layout.local_model_rv_item,parent,false);
+        View view = LayoutInflater.from(context).inflate(R.layout.local_model_rv_item, parent, false);
         ViewHolder viewHolder = new ViewHolder(view);
         return viewHolder;
     }
 
     @Override
     public void onBindViewHolder(final ViewHolder holder, final int position) {
-        Log.d("aaaa", "onBindViewHolder: position = "+position);
+        Log.d("aaaa", "onBindViewHolder: position = " + position);
+        if (singerInfoList==null||singerInfoList.size()==0){
+            return;
+        }
         SingerInfo singer = singerInfoList.get(position);
-        holder.singelName.setText(position+1+"、"+singer.getName());
+        holder.singelName.setText(position + 1 + "、" + singer.getName());
         holder.singerIv.setVisibility(View.INVISIBLE);
-        holder.count.setText(singer.getCount()+"首");
+        holder.count.setText(singer.getCount() + "首");
         holder.count.setVisibility(View.GONE);
         holder.contentLl.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                onItemClickListener.onContentClick(holder.contentLl,position);
+                if (onItemClickListener!=null){
+                    onItemClickListener.onContentClick(holder.contentLl, position);
+                }
             }
         });
 
@@ -73,20 +77,22 @@ public class ArtistAdapter extends RecyclerView.Adapter<ArtistAdapter.ViewHolder
 
     @Override
     public int getItemCount() {
-        return singerInfoList.size();
+        return singerInfoList==null?0:singerInfoList.size();
     }
 
     public void update(List<SingerInfo> singerInfoList) {
         this.singerInfoList.clear();
-        this.singerInfoList.addAll(singerInfoList);
+        if (singerInfoList!=null){
+            this.singerInfoList.addAll(singerInfoList);
+        }
         notifyDataSetChanged();
     }
 
-    public interface OnItemClickListener{
-        void onContentClick(View content,int position);
+    public interface OnItemClickListener {
+        void onContentClick(View content, int position);
     }
 
-    public void setOnItemClickListener(OnItemClickListener onItemClickListener){
-        this.onItemClickListener = onItemClickListener ;
+    public void setOnItemClickListener(OnItemClickListener onItemClickListener) {
+        this.onItemClickListener = onItemClickListener;
     }
 }

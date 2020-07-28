@@ -69,7 +69,10 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.ViewHolder
         holder.contentLl.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                onItemClickListener.onContentClick(holder.contentLl, position);
+                if (onItemClickListener!=null){
+                    onItemClickListener.onContentClick(holder.contentLl, position);
+                }
+
             }
         });
 

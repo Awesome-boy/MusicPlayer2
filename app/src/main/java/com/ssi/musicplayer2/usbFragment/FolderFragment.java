@@ -6,6 +6,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.RelativeLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -54,6 +55,8 @@ public class FolderFragment extends Fragment {
     }
 
     private void initView(View view) {
+        RelativeLayout rl_title = view.findViewById(R.id.ll_lable);
+        rl_title.setVisibility(View.GONE);
         recyclerView = view.findViewById(R.id.single_list);
         linearLayoutManager = new LinearLayoutManager(mContext);
         adapter = new FolderAdapter(mContext,folderInfoList);

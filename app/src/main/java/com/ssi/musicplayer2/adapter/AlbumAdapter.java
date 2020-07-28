@@ -71,7 +71,9 @@ public class AlbumAdapter extends RecyclerView.Adapter<AlbumAdapter.ViewHolder>{
         holder.contentLl.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                onItemClickListener.onContentClick(holder.contentLl,position);
+                if (onItemClickListener!=null){
+                    onItemClickListener.onContentClick(holder.contentLl, position);
+                }
             }
         });
 
@@ -84,7 +86,9 @@ public class AlbumAdapter extends RecyclerView.Adapter<AlbumAdapter.ViewHolder>{
 
     public void update(List<AlbumInfo> albumInfoList) {
         this.albumInfoList.clear();
-        this.albumInfoList.addAll(albumInfoList);
+        if (albumInfoList!=null){
+            this.albumInfoList.addAll(albumInfoList);
+        }
         notifyDataSetChanged();
     }
 
