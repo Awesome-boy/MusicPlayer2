@@ -10,9 +10,10 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.ssi.musicDemo.adapter.MainActivityFragmentAdapter;
-import com.ssi.musicDemo.btFragment.BtFragment;
-import com.ssi.musicDemo.usbFragment.UsbFragment;
+
+import com.ssi.musicplayer2.adapter.MainActivityFragmentAdapter;
+import com.ssi.musicplayer2.btFragment.BtFragment;
+import com.ssi.musicplayer2.usbFragment.UsbFragment;
 
 import java.util.ArrayList;
 import java.util.List;

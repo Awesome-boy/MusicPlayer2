@@ -1,4 +1,4 @@
-package com.ssi.musicDemo.btFragment;
+package com.ssi.musicplayer2.btFragment;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -9,7 +9,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import com.ssi.musicDemo.R;
+import com.ssi.musicplayer2.R;
+
 
 public class BtFragment extends Fragment {
 

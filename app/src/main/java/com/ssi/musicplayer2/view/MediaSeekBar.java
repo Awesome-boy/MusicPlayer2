@@ -1,4 +1,4 @@
-package com.ssi.musicDemo.view;
+package com.ssi.musicplayer2.view;
 
 import android.content.Context;
 import android.util.AttributeSet;

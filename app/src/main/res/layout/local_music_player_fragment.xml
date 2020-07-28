@@ -231,7 +231,7 @@
 
 
 
-    <com.ssi.musicDemo.view.LyricView
+    <com.ssi.musicplayer2.view.LyricView
         android:id="@+id/custom_lyric_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -255,7 +255,7 @@
         android:visibility="gone"
         app:constraint_referenced_ids="end_content,custom_lyric_view,holder_song_album,holder_song_title,holder_song_artist,holder_song_order"/>
 
-    <com.ssi.musicDemo.view.MusicLibraryRecyclerView
+    <com.ssi.musicplayer2.view.MusicLibraryRecyclerView
         android:id="@+id/muisc_list"
         android:layout_width="300dp"
         android:layout_height="0dp"
@@ -348,7 +348,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintHorizontal_chainStyle="spread_inside"/>
 
-    <com.ssi.musicDemo.view.MediaSeekBar
+    <com.ssi.musicplayer2.view.MediaSeekBar
         android:id="@+id/seekbar_audio"
         android:layout_width="0dp"
         android:layout_height="0dp"

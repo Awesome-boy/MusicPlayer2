@@ -1,0 +1,3 @@
+[submodule "d760ui"]
+	path = d760ui
+	url = http://192.168.61.188/ssi_framework/d760ui.git

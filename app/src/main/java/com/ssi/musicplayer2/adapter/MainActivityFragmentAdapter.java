@@ -1,13 +1,15 @@
-package com.ssi.musicDemo.adapter;
+package com.ssi.musicplayer2.adapter;
+
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentStatePagerAdapter;
 
-import com.dfssi.android.framework.utils.Logger;
 
 import java.util.List;
+import java.util.logging.Logger;
 
 public class MainActivityFragmentAdapter extends FragmentStatePagerAdapter {
     private static final String TAG = MainActivityFragmentAdapter.class.getSimpleName();
@@ -42,7 +44,7 @@ public class MainActivityFragmentAdapter extends FragmentStatePagerAdapter {
 
     public void setData(List<Fragment> data) {
         if(data == null || data.isEmpty()) {
-            Logger.w(TAG, "setData return for null");
+            Log.d(TAG, "setData return for null");
             return;
         }
         mFragments = data;

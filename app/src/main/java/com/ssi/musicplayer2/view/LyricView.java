@@ -1,4 +1,4 @@
-package com.ssi.musicDemo.view;
+package com.ssi.musicplayer2.view;
 
 
 import android.animation.Animator;
@@ -20,6 +20,7 @@ import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -31,8 +32,7 @@ import android.view.animation.LinearInterpolator;
 import androidx.annotation.IntDef;
 
 
-import com.dfssi.android.framework.utils.Logger;
-import com.ssi.musicDemo.R;
+import com.ssi.musicplayer2.R;
 
 import org.mozilla.universalchardet.UniversalDetector;
 
@@ -544,7 +544,7 @@ public class LyricView extends View {
 
 
     public void setLyricFile(File file, String path,String p) {
-        Logger.d(TAG, "File file:" );
+        Log.d(TAG, "File file:" );
 
 
 
@@ -574,7 +574,7 @@ public class LyricView extends View {
             final ContentResolver contentResolver = context.getContentResolver();
             inputStream = contentResolver.openInputStream(Uri.parse(path));
 
-            Logger.d(TAG, "File file: path:" + path );
+            Log.d(TAG, "File file: path:" + path );
 
 
             //FileInputStream fis = new FileInputStream(file);
@@ -633,13 +633,13 @@ public class LyricView extends View {
 
 
     public void setLyricFile(File file, String charsetName) {
-        Logger.d(TAG, "setLyricFile charsetName:" + charsetName);
+        Log.d(TAG, "setLyricFile charsetName:" + charsetName);
 
         if (file != null && file.exists()) {
 
             try {
                 setupLyricResource(new FileInputStream(file), charsetName);
-                Logger.d(TAG, "setLyricFile exists: true  mLyricInfo.songLines.size:" +  mLyricInfo.songLines.size());
+                Log.d(TAG, "setLyricFile exists: true  mLyricInfo.songLines.size:" +  mLyricInfo.songLines.size());
 
 
 
