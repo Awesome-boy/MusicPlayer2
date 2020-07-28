@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 整个进度条背景 -->
+    <item android:id="@android:id/background">
+        <shape>
+            <corners android:radius="5dip" />
+            <solid android:color="#FF1D2088"/>
+        </shape>
+    </item>
+    <!-- 省略了二级进度条背景 -->
+    <!-- 已完成的进度条背景 -->
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape>
+                <corners android:radius="5dip" />
+                <solid android:color="#FF00F0FF"/>
+            </shape>
+        </clip>
+    </item>
+</layer-list>

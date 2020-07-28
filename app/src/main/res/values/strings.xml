@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">MusicPlayer</string>
+    <string name="btn_back">返回</string>
+    <string name="usb_music">"USB音乐"</string>
+    <string name="bluetooth_music">"蓝牙音乐"</string>
+    <string name="label_stop">停止</string>
+    <string name="label_pause">暂停</string>
+    <string name="label_play">播放</string>
+    <string name="label_play_pause">播放/暂停</string>
+    <string name="label_previous">上一首</string>
+    <string name="label_next">下一首</string>
+    <string name="unknown_song_title">未知</string>
+    <string name="default_hint">没有歌词</string>
+    <string name="bt_con_tip">"蓝牙未连接，请通过蓝牙连接手机"</string>
+    <string name="confirm">"确认"</string>
+    <string name="cancel">"取消"</string>
+    <string name="tips_no_usb">"请插入USB设备"</string>
+    <string name="text_artist">"艺术家"</string>
+    <string name="text_album">"专辑"</string>
+    <string name="text_usb">"USB"</string>
+    <string name="text_scaning">"正在搜索USB音乐，请稍后..."</string>
+    <string name="no_music_usb">"无音频文件"</string>
+    <string name="music_name">"歌曲名称"</string>
+    <string name="music_play_order">"顺序"</string>
+    <string name="album_name">"专辑名称"</string>
+    <string name="music_artist">"歌手"</string>
+    <string name="enjoy">娱乐</string>
+    <string name="music">音乐</string>
+    <string name="bt_disconnect">蓝牙设备断开连接</string>
+    <string name="text_progress" translatable="false">"00:00:00"</string>
+</resources>

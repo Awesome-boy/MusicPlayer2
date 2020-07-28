@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/window_main_bg"
+    android:fitsSystemWindows="true"
+    tools:context=".MainActivity">
+
+    <include layout="@layout/d760_title_bar" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/img_usb_music_state"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginEnd="10dp"
+        android:src="@drawable/img_music_selected"
+        app:layout_constraintBottom_toTopOf="@id/title_bar_div"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toStartOf="@id/usb_pager_title"
+        app:layout_constraintHeight_percent="0.03"
+        app:layout_constraintTop_toTopOf="parent" />
+
+
+    <View
+        android:id="@+id/usb_pager_title_container"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/main_fragment_selected"
+        app:layout_constraintBottom_toTopOf="@id/title_bar_div"
+        app:layout_constraintEnd_toStartOf="@id/spacer_middle"
+        app:layout_constraintHeight_percent="0.05"
+        app:layout_constraintWidth_percent="0.12" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/usb_pager_title"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:maxLines="1"
+        android:minLines="1"
+        android:text="@string/usb_music"
+        android:textAlignment="gravity"
+        android:textColor="@color/color_selector"
+        android:textSize="20dp"
+        app:autoSizeTextType="uniform"
+        app:layout_constraintBottom_toBottomOf="@id/title_bar_div"
+        app:layout_constraintEnd_toEndOf="@id/usb_pager_title_container"
+        app:layout_constraintHeight_percent="0.05"
+        app:layout_constraintStart_toStartOf="@id/usb_pager_title_container"
+        app:layout_constraintTop_toTopOf="parent" />
+
+
+    <Space
+        android:id="@+id/spacer_middle"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@id/guideline_horizontal_title"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.1"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_percent="0.03" />
+
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/img_bt_music_state"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginEnd="10dp"
+        android:src="@drawable/img_music_selected"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toTopOf="@id/title_bar_div"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toStartOf="@id/bt_pager_title"
+        app:layout_constraintHeight_percent="0.03"
+        app:layout_constraintTop_toTopOf="parent" />
+
+
+    <View
+        android:id="@+id/bt_pager_title_container"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/main_fragment_selected"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toTopOf="@id/title_bar_div"
+        app:layout_constraintHeight_percent="0.03"
+        app:layout_constraintStart_toEndOf="@id/spacer_middle"
+        app:layout_constraintWidth_percent="0.12" />
+
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/bt_pager_title"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:text="@string/bluetooth_music"
+        android:textAlignment="gravity"
+        android:textColor="@color/color_selector"
+        android:textSize="20dp"
+        app:autoSizeTextType="uniform"
+        app:layout_constraintBottom_toTopOf="@id/title_bar_div"
+        app:layout_constraintEnd_toEndOf="@id/bt_pager_title_container"
+        app:layout_constraintHeight_percent="0.05"
+        app:layout_constraintStart_toStartOf="@id/bt_pager_title_container"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_percent="0.12" />
+
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/music_lyric"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginEnd="16dp"
+        android:scaleType="fitXY"
+        android:src="@drawable/selector_lyric"
+        app:layout_constraintBottom_toTopOf="@id/title_bar_div"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toStartOf="@id/music_dir"
+        app:layout_constraintHeight_percent="0.06"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/music_dir"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginEnd="16dp"
+        android:scaleType="fitXY"
+        android:src="@drawable/selector_music_dir"
+        app:layout_constraintBottom_toTopOf="@id/title_bar_div"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toStartOf="@id/music_artist"
+        app:layout_constraintHeight_percent="0.06"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintTop_toTopOf="parent" />
+
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/music_artist"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginEnd="16dp"
+        android:scaleType="fitXY"
+        android:src="@drawable/selector_music_artist"
+        app:layout_constraintBottom_toTopOf="@id/title_bar_div"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toStartOf="@id/music_album"
+        app:layout_constraintHeight_percent="0.06"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintTop_toTopOf="parent" />
+
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/music_album"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginEnd="16dp"
+        android:scaleType="fitXY"
+        android:src="@drawable/selector_music_album"
+        app:layout_constraintBottom_toTopOf="@id/title_bar_div"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.06"
+        app:layout_constraintTop_toTopOf="parent" />
+
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline_horizontal_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.1" />
+
+    <androidx.viewpager.widget.ViewPager
+        android:id="@+id/viewpager"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/title_bar_div"
+        app:layout_constraintVertical_bias="1.0" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
