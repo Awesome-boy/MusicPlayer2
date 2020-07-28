@@ -255,18 +255,20 @@
         android:visibility="gone"
         app:constraint_referenced_ids="end_content,custom_lyric_view,holder_song_album,holder_song_title,holder_song_artist,holder_song_order"/>
 
-    <com.ssi.musicplayer2.view.MusicLibraryRecyclerView
-        android:id="@+id/muisc_list"
-        android:layout_width="300dp"
-        android:layout_height="0dp"
-        android:visibility="gone"
-        android:background="@drawable/bg_songs"
-        android:scrollbars="vertical"
-        android:scrollbarThumbVertical="@drawable/scrollbar"
-        app:layout_constraintStart_toEndOf="@id/content_view"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/guideline_horizontal_bottom"/>
+
+        <FrameLayout
+            android:id="@+id/muisc_list"
+            android:layout_width="300dp"
+            android:layout_height="0dp"
+
+            android:scrollbars="vertical"
+            android:scrollbarThumbVertical="@drawable/scrollbar"
+            app:layout_constraintStart_toEndOf="@id/content_view"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/guideline_horizontal_bottom"
+           />
+
 
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/button_play"
@@ -343,13 +345,13 @@
         android:textSize="20sp"
         android:textColor="@color/normal_text_color"
         app:layout_constraintStart_toEndOf="@id/button_next"
-        app:layout_constraintEnd_toStartOf="@id/seekbar_audio"
+        app:layout_constraintEnd_toStartOf="@id/seekbar"
         app:layout_constraintTop_toBottomOf="@id/guideline_horizontal_bottom"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintHorizontal_chainStyle="spread_inside"/>
 
     <com.ssi.musicplayer2.view.MediaSeekBar
-        android:id="@+id/seekbar_audio"
+        android:id="@+id/seekbar"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginEnd="16dp"
@@ -380,7 +382,7 @@
         android:text="@string/text_progress"
         android:textSize="20sp"
         android:textColor="@color/normal_text_color"
-        app:layout_constraintStart_toEndOf="@id/seekbar_audio"
+        app:layout_constraintStart_toEndOf="@id/seekbar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/guideline_horizontal_bottom"
         app:layout_constraintBottom_toBottomOf="parent"

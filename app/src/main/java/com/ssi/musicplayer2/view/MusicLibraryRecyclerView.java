@@ -5,6 +5,10 @@ import android.util.AttributeSet;
 
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.ssi.musicplayer2.javabean.MusicInfo;
+
+import java.util.List;
+
 public class MusicLibraryRecyclerView extends RecyclerView{
 
     public MusicLibraryRecyclerView(Context context) {
@@ -33,7 +37,8 @@ public class MusicLibraryRecyclerView extends RecyclerView{
         super.onDetachedFromWindow();
     }
 
-    
+
+
 }
 
 

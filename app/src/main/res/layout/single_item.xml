@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="10dp"
+    android:orientation="horizontal"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <ImageView
+        android:id="@+id/iv_state"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="20dp"
+        android:src="@drawable/img_music_selected"
+        />
+    <TextView
+        android:id="@+id/tv_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:ellipsize="marquee"
+        android:textSize="15dp"
+        android:text="一首简单的歌"
+        android:layout_marginStart="10dp"
+        android:textColor="@color/normal_text_color"
+        android:textAlignment="textStart"
+        android:marqueeRepeatLimit="marquee_forever"
+        app:layout_constraintStart_toEndOf="@+id/iv_state"/>
+
+</LinearLayout>
