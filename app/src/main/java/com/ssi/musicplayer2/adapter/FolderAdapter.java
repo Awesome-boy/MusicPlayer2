@@ -36,6 +36,14 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.ViewHolder
         this.dbManager = DBManager.getInstance(context);
     }
 
+    public void update( List<FolderInfo> folderList) {
+        folderInfoList.clear();
+        if (folderList!=null){
+            folderInfoList.addAll(folderList);
+        }
+        notifyDataSetChanged();
+    }
+
     static class ViewHolder extends RecyclerView.ViewHolder {
         LinearLayout contentLl;
         ImageView folderIv;
