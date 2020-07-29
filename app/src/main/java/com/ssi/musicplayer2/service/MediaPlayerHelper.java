@@ -25,6 +25,8 @@ import androidx.core.app.NotificationCompat;
 
 import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.javabean.MusicInfo;
+import com.ssi.musicplayer2.utils.Constant;
+import com.ssi.musicplayer2.utils.MyMusicUtil;
 
 import java.io.IOException;
 import java.util.List;
@@ -112,7 +114,7 @@ public class MediaPlayerHelper implements
                         //设置音频信息；
                         mMediaSession.setMetadata(getMusicEntity(entity.getName(),
                                 entity.getSinger(), entity.getAlbum()));
-                        Log.d("zt",entity.getName()+"-----"+ entity.getSinger()+"-----"+entity.getSinger()+"--"+entity.getPath()+"---"+last_index);
+                        Log.d("zt",list_data.get(last_index).getId()+"---"+last_index);
                         break;
                 }
             } catch (IOException e) {

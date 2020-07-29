@@ -79,7 +79,7 @@ public class FolderFragment extends Fragment {
                String path= folderInfoList.get(position).getPath();
                 List<MusicInfo> listByFolder=dbManager.getMusicListByFolder(path);
                 adapter.update(null);
-                recyclerView.setAdapter(new SingleAdapter(mContext,listByFolder));
+                recyclerView.setAdapter(new SingleAdapter(mContext,listByFolder,"folder"));
                 relativeLayout.setVisibility(View.VISIBLE);
                 iv_back.setVisibility(View.VISIBLE);
             }

@@ -100,11 +100,6 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
                 return;
             }
             refreshItem();
-            Log.d("zt","----作者--"+metadata.getString(MediaMetadataCompat.METADATA_KEY_AUTHOR));
-            Log.d("zt","---专辑--"+metadata.getString(MediaMetadataCompat.METADATA_KEY_ALBUM));
-            Log.d("zt","----标题--"+metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE));
-            Log.d("zt","----id--"+metadata.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID));
-
         }
     };
     private Context mContext;
@@ -181,6 +176,10 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
             int posId=mMediaPlayerHelper.getPlayId();
             if (currentFragment instanceof  SinleFragment){
                 ((SinleFragment) currentFragment).showPos("single",posId);
+            }else if (currentFragment instanceof ArtistFragment){
+                ((ArtistFragment) currentFragment).showPos("singer",posId);
+            }else if (currentFragment instanceof AlbumFragment){
+                ((AlbumFragment) currentFragment).showPos("album",posId);
             }
         }
 

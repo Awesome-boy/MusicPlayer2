@@ -21,24 +21,6 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
-//    signingConfigs {
-//        debug {
-//            storeFile file("/Users/mac/Desktop/sign.jks")
-//            storePassword "zt171510"
-//            keyAlias "zt"
-//            keyPassword "zt171510"
-//            v1SigningEnabled true
-//            v2SigningEnabled true
-//        }
-//        release {
-//            storeFile file("/Users/mac/Desktop/sign.jks")
-//            storePassword "zt171510"
-//            keyAlias "zt"
-//            keyPassword "zt171510"
-//            v1SigningEnabled true
-//            v2SigningEnabled true
-//        }
-//    }
     buildTypes {
         debug{
             minifyEnabled false

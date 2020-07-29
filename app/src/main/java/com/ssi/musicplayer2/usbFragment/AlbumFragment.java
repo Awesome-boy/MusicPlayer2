@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,10 +20,14 @@ import com.ssi.musicplayer2.adapter.AlbumAdapter;
 import com.ssi.musicplayer2.adapter.FolderAdapter;
 import com.ssi.musicplayer2.adapter.SingleAdapter;
 import com.ssi.musicplayer2.database.DBManager;
+import com.ssi.musicplayer2.intf.OnCommonAdapterItemClick;
 import com.ssi.musicplayer2.javabean.AlbumInfo;
 import com.ssi.musicplayer2.javabean.MusicInfo;
+import com.ssi.musicplayer2.service.MessageEvent;
 import com.ssi.musicplayer2.utils.MyMusicUtil;
 import com.ssi.musicplayer2.view.MusicLibraryRecyclerView;
+
+import org.greenrobot.eventbus.EventBus;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +44,8 @@ public class AlbumFragment extends Fragment {
     private TextView tv_titlle;
     private ImageView iv_back;
     private ArrayList<AlbumInfo> dbList;
+    private SingleAdapter singleAdapter;
+    private int currentItem=-1;
 
     @Nullable
     @Override
@@ -71,14 +78,31 @@ public class AlbumFragment extends Fragment {
         recyclerView.setLayoutManager(linearLayoutManager);
         recyclerView.setAdapter(adapter);
         adapter.setOnItemClickListener(new AlbumAdapter.OnItemClickListener() {
+
+
+
             @Override
             public void onContentClick(View content, int position) {
                 String name=albumInfoList.get(position).getName();
                 List<MusicInfo> listByAlbum= dbManager.getMusicListByAlbum(name);
                 adapter.update(null);
-                recyclerView.setAdapter(new SingleAdapter(mContext,listByAlbum));
+                singleAdapter = new SingleAdapter(mContext,listByAlbum,"album");
+                recyclerView.setAdapter(singleAdapter);
                 tv_titlle.setText(name);
                 iv_back.setVisibility(View.VISIBLE);
+                singleAdapter.setOnCommonAdapterItemClick(new OnCommonAdapterItemClick() {
+                    @Override
+                    public void onItemClickListener(View v, int pos, String type) {
+                        Toast.makeText(mContext,type,Toast.LENGTH_SHORT).show();
+                        if (type.equals("album")) {
+                            MessageEvent event = new MessageEvent();
+                            event.setType(type);
+                            event.setMusicInfoList(listByAlbum);
+                            event.setPos(pos);
+                            EventBus.getDefault().post(event);
+                        }
+                    }
+                });
             }
         });
         iv_back.setOnClickListener(new View.OnClickListener() {
@@ -98,7 +122,14 @@ public class AlbumFragment extends Fragment {
         albumInfoList.clear();
         dbList = MyMusicUtil.groupByAlbum((ArrayList)dbManager.getAllMusicFromMusicTable());
         albumInfoList.addAll(dbList);
-        Log.d("zt", "onResume: albumInfoList.size() = "+albumInfoList.size());
         adapter.notifyDataSetChanged();
+    }
+
+    public void showPos(String type, int posId) {
+        currentItem = posId;
+        if (singleAdapter!=null && type.equals("album")){
+            singleAdapter.updateSelectItem(posId);
+            singleAdapter.notifyDataSetChanged();
+        }
     }
 }

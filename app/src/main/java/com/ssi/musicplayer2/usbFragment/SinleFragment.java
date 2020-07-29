@@ -40,7 +40,7 @@ public class SinleFragment extends Fragment  {
     private DBManager dbManager;
     private SingleAdapter adapter;
     private LinearLayoutManager linearLayoutManager;
-    private int currentItem;
+    private int currentItem=-1;
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -62,7 +62,10 @@ public class SinleFragment extends Fragment  {
         musicInfoList = dbManager.getAllMusicFromMusicTable();
         Collections.sort(musicInfoList);
         adapter.updateMusicInfoList(musicInfoList);
-        adapter.updateSelectItem(currentItem);
+        if (currentItem!=-1){
+            adapter.updateSelectItem(currentItem);
+        }
+
     }
 
 
@@ -89,17 +92,21 @@ public class SinleFragment extends Fragment  {
         rl_title.setVisibility(View.GONE);
         recyclerView = view.findViewById(R.id.single_list);
         linearLayoutManager = new LinearLayoutManager(mContext);
-        adapter = new SingleAdapter(mContext,musicInfoList);
+        adapter = new SingleAdapter(mContext,musicInfoList,"single");
         recyclerView.setLayoutManager(linearLayoutManager);
         recyclerView.setAdapter(adapter);
 
         adapter.setOnCommonAdapterItemClick(new OnCommonAdapterItemClick() {
             @Override
-            public void onItemClickListener(View v, int pos) {
-                MessageEvent event=new MessageEvent();
-                event.setMusicInfoList(musicInfoList);
-                event.setPos(pos);
-                EventBus.getDefault().post(event);
+            public void onItemClickListener(View v, int pos,String type) {
+                if (type.equals("single")){
+                    MessageEvent event=new MessageEvent();
+                    event.setType(type);
+                    event.setMusicInfoList(musicInfoList);
+                    event.setPos(pos);
+                    EventBus.getDefault().post(event);
+                }
+
             }
         });
 
@@ -109,7 +116,7 @@ public class SinleFragment extends Fragment  {
     public void showPos(String type, int pos) {
         Log.d("zt","singlefragment----"+pos);
         currentItem = pos;
-        if (adapter!=null){
+        if (adapter!=null &&type.equals("single")){
             adapter.updateSelectItem(currentItem);
             adapter.notifyDataSetChanged();
         }

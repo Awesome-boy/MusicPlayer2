@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,10 +20,14 @@ import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.adapter.ArtistAdapter;
 import com.ssi.musicplayer2.adapter.SingleAdapter;
 import com.ssi.musicplayer2.database.DBManager;
+import com.ssi.musicplayer2.intf.OnCommonAdapterItemClick;
 import com.ssi.musicplayer2.javabean.MusicInfo;
 import com.ssi.musicplayer2.javabean.SingerInfo;
+import com.ssi.musicplayer2.service.MessageEvent;
 import com.ssi.musicplayer2.utils.MyMusicUtil;
 import com.ssi.musicplayer2.view.MusicLibraryRecyclerView;
+
+import org.greenrobot.eventbus.EventBus;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +44,7 @@ public class ArtistFragment extends Fragment {
     private ImageView iv_back;
     private SingleAdapter singleAdapter;
     private List<SingerInfo> dbList;
+    private int currentItem=-1;
 
 
     @Nullable
@@ -80,10 +86,23 @@ public class ArtistFragment extends Fragment {
                 String name=singerInfoList.get(position).getName();
                 List<MusicInfo> listBySinger= dbManager.getMusicListBySinger(name);
                 adapter.update(null);
-                singleAdapter = new SingleAdapter(mContext,listBySinger);
+                singleAdapter = new SingleAdapter(mContext,listBySinger,"singer");
                 recyclerView.setAdapter(singleAdapter);
                 tv_titlle.setVisibility(View.GONE);
                 iv_back.setVisibility(View.VISIBLE);
+                singleAdapter.setOnCommonAdapterItemClick(new OnCommonAdapterItemClick() {
+                    @Override
+                    public void onItemClickListener(View v, int pos, String type) {
+                        Toast.makeText(mContext, type, Toast.LENGTH_SHORT).show();
+                        if (type.equals("singer")) {
+                            MessageEvent event = new MessageEvent();
+                            event.setType(type);
+                            event.setMusicInfoList(listBySinger);
+                            event.setPos(pos);
+                            EventBus.getDefault().post(event);
+                        }
+                    }
+                });
             }
         });
         iv_back.setOnClickListener(new View.OnClickListener() {
@@ -103,7 +122,17 @@ public class ArtistFragment extends Fragment {
         singerInfoList.clear();
         dbList = MyMusicUtil.groupBySinger((ArrayList) dbManager.getAllMusicFromMusicTable());
         singerInfoList.addAll(dbList);
-        Log.d("zt", "onResume: singerInfoList.size() = "+singerInfoList.size());
+//        if (singleAdapter!=null &&currentItem!=-1){
+//            singleAdapter.updateSelectItem(currentItem);
+//        }
         adapter.notifyDataSetChanged();
+    }
+
+    public void showPos(String singer, int posId) {
+        currentItem = posId;
+        if (singleAdapter!=null &&singer.equals("singer")){
+            singleAdapter.updateSelectItem(posId);
+            singleAdapter.notifyDataSetChanged();
+        }
     }
 }

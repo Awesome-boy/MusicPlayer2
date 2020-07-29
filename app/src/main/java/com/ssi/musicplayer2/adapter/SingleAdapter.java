@@ -15,7 +15,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.intf.OnCommonAdapterItemClick;
 import com.ssi.musicplayer2.javabean.MusicInfo;
+import com.ssi.musicplayer2.utils.Constant;
+import com.ssi.musicplayer2.utils.MyMusicUtil;
 
+import java.util.Collections;
 import java.util.List;
 
 public class SingleAdapter extends RecyclerView.Adapter<SingleAdapter.ViewHolder> {
@@ -25,14 +28,16 @@ public class SingleAdapter extends RecyclerView.Adapter<SingleAdapter.ViewHolder
     private LayoutInflater layoutInflater;
     private OnCommonAdapterItemClick onCommonAdapterItemClick;
     private int currentPos=-1;
+    private String type;
 
     public void setOnCommonAdapterItemClick(OnCommonAdapterItemClick onCommonAdapterItemClick) {
         this.onCommonAdapterItemClick = onCommonAdapterItemClick;
     }
 
-    public SingleAdapter(Context mContext, List<MusicInfo> musicInfoList) {
+    public SingleAdapter(Context mContext, List<MusicInfo> musicInfoList,String type) {
         this.context=mContext;
         this.musicInfoList=musicInfoList;
+        this.type=type;
         layoutInflater=LayoutInflater.from(mContext);
     }
 
@@ -45,9 +50,9 @@ public class SingleAdapter extends RecyclerView.Adapter<SingleAdapter.ViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        MusicInfo info=musicInfoList.get(position);
-        holder.textView.setText(position+1+"、"+info.getName());
-        if (currentPos==position){
+        MusicInfo musicInfo=musicInfoList.get(position);
+        holder.textView.setText(position+1+"、"+musicInfo.getName());
+        if (musicInfo.getId()==MyMusicUtil.getIntShared(Constant.KEY_ID)){
             holder.textView.setTextColor(context.getColor(R.color.context_text_color));
             holder.imageView.setVisibility(View.VISIBLE);
         }else {
@@ -59,7 +64,16 @@ public class SingleAdapter extends RecyclerView.Adapter<SingleAdapter.ViewHolder
             public void onClick(View v) {
                 if (onCommonAdapterItemClick!=null){
                     updateSelectItem(position);
-                    onCommonAdapterItemClick.onItemClickListener(v,position);
+                    if (type.equals("singer")) {
+                        MyMusicUtil.setShared(Constant.KEY_LIST, Constant.LIST_SINGER);
+                    } else if (type.equals("album")) {
+                        MyMusicUtil.setShared(Constant.KEY_LIST, Constant.LIST_ALBUM);
+                    } else if (type.equals("folder")) {
+                        MyMusicUtil.setShared(Constant.KEY_LIST, Constant.LIST_FOLDER);
+                    }else if (type.equals("single")){
+                        MyMusicUtil.setShared(Constant.KEY_ID, Constant.LIST_SINGLE);
+                    }
+                    onCommonAdapterItemClick.onItemClickListener(v,position,type);
                 }
             }
         });
@@ -80,6 +94,7 @@ public class SingleAdapter extends RecyclerView.Adapter<SingleAdapter.ViewHolder
 
     public void updateSelectItem(int pos) {
         currentPos=pos;
+        MyMusicUtil.setShared(Constant.KEY_ID, musicInfoList.get(currentPos).getId());
         notifyDataSetChanged();
     }
 
