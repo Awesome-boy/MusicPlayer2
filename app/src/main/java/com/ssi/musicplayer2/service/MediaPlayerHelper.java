@@ -17,6 +17,7 @@ import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.util.Log;
 
 
 import androidx.appcompat.widget.AppCompatSeekBar;
@@ -111,6 +112,7 @@ public class MediaPlayerHelper implements
                         //设置音频信息；
                         mMediaSession.setMetadata(getMusicEntity(entity.getName(),
                                 entity.getSinger(), entity.getAlbum()));
+                        Log.d("zt",entity.getName()+"-----"+ entity.getSinger()+"-----"+entity.getSinger()+"--"+entity.getPath()+"---"+last_index);
                         break;
                 }
             } catch (IOException e) {
@@ -340,6 +342,14 @@ public class MediaPlayerHelper implements
         return mediaMetadataCompat;
     }
 
+    public void setPlayID(int pos) {
+        this.last_index=pos;
+        mMediaSessionCallback.onPlayFromUri(null,null);
+    }
+
+    public int getPlayId(){
+        return last_index;
+    }
 
     public interface MediaPlayerUpdateCallBack {
         void onCompletion(MediaPlayer mediaPlayer);

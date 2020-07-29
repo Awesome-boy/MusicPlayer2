@@ -40,27 +40,33 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     private ImageView music_dir;
     private ImageView music_artist;
     private ImageView music_album;
-
+    private static final String[] permissionGroup =
+            new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.RECORD_AUDIO,
+                    Manifest.permission.MODIFY_AUDIO_SETTINGS
+            };
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         setContentView(R.layout.activity_main);
-        initPermission();
         initView();
+        if (isNeedPermission()) {
+            requestPermissions(permissionGroup, 1);
+        }
 
     }
 
-    private void initPermission() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return;
+    private boolean isNeedPermission() {
+        boolean isGet = false;
+        for (int i = 0; i < permissionGroup.length; i++) {
+            isGet = checkSelfPermission(permissionGroup[i]) == PackageManager.PERMISSION_GRANTED;
+            if (!isGet) {
+                return true;
+            }
         }
-        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(MainActivity.this,
-                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
-                    1);
-        }
+        return false;
     }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -128,7 +134,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.bt_back:
-                finish();
+                moveTaskToBack(true);
                 break;
         }
     }

@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.database.Cursor;
+import android.media.MediaMetadata;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
@@ -35,12 +36,17 @@ import com.ssi.musicplayer2.database.DBManager;
 import com.ssi.musicplayer2.javabean.MusicInfo;
 import com.ssi.musicplayer2.service.AudioPlayerService;
 import com.ssi.musicplayer2.service.MediaPlayerHelper;
+import com.ssi.musicplayer2.service.MessageEvent;
 import com.ssi.musicplayer2.utils.ChineseToEnglish;
 import com.ssi.musicplayer2.utils.Constant;
 import com.ssi.musicplayer2.utils.Logger;
 import com.ssi.musicplayer2.utils.MyMusicUtil;
 import com.ssi.musicplayer2.utils.Utils;
 import com.ssi.musicplayer2.view.MediaSeekBar;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -50,7 +56,7 @@ import java.util.List;
 
 public class UsbFragment extends Fragment implements View.OnClickListener, SeekBar.OnSeekBarChangeListener, ServiceConnection, MediaPlayerHelper.MediaPlayerUpdateCallBack {
 
-    private static final String TAG =UsbFragment.class.getSimpleName() ;
+    private static final String TAG = UsbFragment.class.getSimpleName();
     private View rootView;
     private TextView song_progress_time;
     private TextView song_duration_time;
@@ -60,6 +66,8 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     private Button btn_next;
     private MediaSeekBar seekBar;
     private List<MusicInfo> musicInfoList;
+
+
     private MediaControllerCompat.Callback mMediaControllerCallback = new MediaControllerCompat.Callback() {
         @Override
         public void onPlaybackStateChanged(PlaybackStateCompat state) {
@@ -87,6 +95,16 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         @Override
         public void onMetadataChanged(MediaMetadataCompat metadata) {
             super.onMetadataChanged(metadata);
+            if (metadata == null ||mMediaPlayerHelper==null) {
+                Logger.i(TAG, "onMetadataChanged return for null");
+                return;
+            }
+            refreshItem();
+            Log.d("zt","----作者--"+metadata.getString(MediaMetadataCompat.METADATA_KEY_AUTHOR));
+            Log.d("zt","---专辑--"+metadata.getString(MediaMetadataCompat.METADATA_KEY_ALBUM));
+            Log.d("zt","----标题--"+metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE));
+            Log.d("zt","----id--"+metadata.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID));
+
         }
     };
     private Context mContext;
@@ -103,11 +121,24 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     private ImageView music_dir;
     private ImageView music_artist;
     private ImageView music_album;
+    private Fragment currentFragment;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mContext = getContext();
+        EventBus.getDefault().register(this);
+    }
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        EventBus.getDefault().unregister(this);
     }
 
     @Nullable
@@ -130,12 +161,41 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         initView(view);
         dbManager = DBManager.getInstance(mContext);
         final List<String> path = Utils.getUSBPaths(mContext);
-        if (path!=null && path.size()>0){
+        if (path != null && path.size() > 0) {
             showDialog();
             startScanLocalMusic(path.get(0));
         }
         Intent intent = new Intent(mContext, AudioPlayerService.class);
         mContext.bindService(intent, this, 0);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        refreshState();
+        refreshItem();
+    }
+
+    private void refreshItem(){
+        if (mMediaPlayerHelper!=null){
+            int posId=mMediaPlayerHelper.getPlayId();
+            if (currentFragment instanceof  SinleFragment){
+                ((SinleFragment) currentFragment).showPos("single",posId);
+            }
+        }
+
+    }
+
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessage(MessageEvent messageEvent) {
+        MessageEvent event=messageEvent;
+        List<MusicInfo> musicInfoList=event.getMusicInfoList();
+        int pos=event.getPos();
+        if (mMediaPlayerHelper!=null){
+            mMediaPlayerHelper.setPlayeData(musicInfoList);
+            mMediaPlayerHelper.setPlayID(pos);
+        }
     }
 
     private void showDialog() {
@@ -151,7 +211,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
             super.handleMessage(msg);
             switch (msg.what) {
                 case Constant.SCAN_NO_MUSIC:
-                    Toast.makeText(mContext,"本地没有歌曲，快去下载吧",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mContext, "本地没有歌曲，快去下载吧", Toast.LENGTH_SHORT).show();
                     scanComplete();
                     break;
                 case Constant.SCAN_ERROR:
@@ -172,20 +232,31 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         }
     };
 
-    private void initCurPlaying() {
 
+
+    private void refreshState() {
+        if (mMediaController != null) {
+            if (mMediaController.getPlaybackState().getState() == PlaybackStateCompat.STATE_PLAYING) {
+                btn_play.setBackgroundResource(R.drawable.img_pause);
+            } else {
+                btn_play.setBackgroundResource(R.drawable.img_play);
+            }
+        }else {
+            btn_play.setBackgroundResource(R.drawable.img_play);
+        }
+    }
+
+    private void initCurPlaying() {
 
     }
 
 
-
     private void scanComplete() {
-        if (progressDialog!=null && progressDialog.isShowing()){
+        if (progressDialog != null && progressDialog.isShowing()) {
             progressDialog.dismiss();
         }
-
-        if (musicInfoList!=null){
-            Logger.d("zt","---扫描出的歌曲数：----"+musicInfoList.size());
+        if (musicInfoList != null) {
+            Logger.d("zt", "---扫描出的歌曲数：----" + musicInfoList.size());
 
         }
 
@@ -210,7 +281,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
                             MediaStore.Audio.Media.DATA + " like ?",
                             new String[]{path + "%"},
                             MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
-                    if (cursor!= null && cursor.getCount() != 0){
+                    if (cursor != null && cursor.getCount() != 0) {
                         musicInfoList = new ArrayList<MusicInfo>();
                         Log.i(TAG, "run: cursor.getCount() = " + cursor.getCount());
                         while (cursor.moveToNext()) {
@@ -225,14 +296,15 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
                             String singer = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
                             String album = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
                             String path = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
+//                            int id = cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID));
 //                            String path = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.AudioColumns.DATA));
-                            String duration = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION));
+//                            String duration = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION));
 //                            if (filterCb.isChecked() && duration != null && Long.valueOf(duration) < 1000 * 60){
 //                                Log.e(TAG, "run: name = "+name+" duration < 1000 * 60" );
 //                                continue;
 //                            }
 
-                            Log.d("zt","------"+path);
+                            Log.d("zt", "------" + path+"----");
 
                             File file = new File(path);
                             String parentPath = file.getParentFile().getPath();
@@ -248,9 +320,9 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
                             musicInfo.setSinger(singer);
                             musicInfo.setAlbum(album);
                             musicInfo.setPath(path);
-                            Log.e(TAG, "run: parentPath = "+parentPath );
+                            Log.e(TAG, "run: parentPath = " + parentPath);
                             musicInfo.setParentPath(parentPath);
-                            musicInfo.setFirstLetter(ChineseToEnglish.StringToPinyinSpecial(name).toUpperCase().charAt(0)+"");
+                            musicInfo.setFirstLetter(ChineseToEnglish.StringToPinyinSpecial(name).toUpperCase().charAt(0) + "");
 
                             musicInfoList.add(musicInfo);
 //                            progress++;
@@ -283,7 +355,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
                         msg.what = Constant.SCAN_COMPLETE;
                         handler.sendMessage(msg);  //更新UI界面
 
-                    }else {
+                    } else {
                         msg = new Message();
                         msg.what = Constant.SCAN_NO_MUSIC;
                         handler.sendMessage(msg);  //更新UI界面
@@ -291,9 +363,9 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
                     if (cursor != null) {
                         cursor.close();
                     }
-                }catch (Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
-                    Log.e(TAG, "run: error = ",e );
+                    Log.e(TAG, "run: error = ", e);
                     //扫描出错
                     msg = new Message();
                     msg.what = Constant.SCAN_ERROR;
@@ -303,20 +375,18 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         }.start();
     }
 
-    public static String replaseUnKnowe(String oldStr){
+    public static String replaseUnKnowe(String oldStr) {
         try {
-            if (oldStr != null){
-                if (oldStr.equals("<unknown>")){
+            if (oldStr != null) {
+                if (oldStr.equals("<unknown>")) {
                     oldStr = oldStr.replaceAll("<unknown>", "未知");
                 }
             }
-        }catch (Exception e){
-            Log.e(TAG, "replaseUnKnowe: error = ",e );
+        } catch (Exception e) {
+            Log.e(TAG, "replaseUnKnowe: error = ", e);
         }
         return oldStr;
     }
-
-
 
 
     @Override
@@ -356,7 +426,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
 
     @Override
     public void onClick(View v) {
-        switch (v.getId()){
+        switch (v.getId()) {
             case R.id.button_play:
                 //todo 播放或者暂停
                 if (mMediaController.getPlaybackState().getState() == PlaybackStateCompat.STATE_PLAYING) {
@@ -420,6 +490,8 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
             transaction.show(targetFragment)
                     .commit();
         }
+        currentFragment = targetFragment;
+        refreshItem();
 
     }
 

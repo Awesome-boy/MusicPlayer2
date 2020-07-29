@@ -17,14 +17,20 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.adapter.SingleAdapter;
 import com.ssi.musicplayer2.database.DBManager;
+import com.ssi.musicplayer2.intf.OnCommonAdapterItemClick;
 import com.ssi.musicplayer2.javabean.MusicInfo;
+import com.ssi.musicplayer2.service.MessageEvent;
 import com.ssi.musicplayer2.view.MusicLibraryRecyclerView;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class SinleFragment extends Fragment {
+public class SinleFragment extends Fragment  {
 
 
     private View view;
@@ -34,12 +40,20 @@ public class SinleFragment extends Fragment {
     private DBManager dbManager;
     private SingleAdapter adapter;
     private LinearLayoutManager linearLayoutManager;
+    private int currentItem;
 
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         mContext=context;
         dbManager = DBManager.getInstance(context);
+        EventBus.getDefault().register(this);
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        EventBus.getDefault().unregister(this);
     }
 
     @Override
@@ -48,6 +62,13 @@ public class SinleFragment extends Fragment {
         musicInfoList = dbManager.getAllMusicFromMusicTable();
         Collections.sort(musicInfoList);
         adapter.updateMusicInfoList(musicInfoList);
+        adapter.updateSelectItem(currentItem);
+    }
+
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessage(MessageEvent messageEvent) {
+
     }
 
     @Nullable
@@ -72,6 +93,26 @@ public class SinleFragment extends Fragment {
         recyclerView.setLayoutManager(linearLayoutManager);
         recyclerView.setAdapter(adapter);
 
-        Log.d("zt","sss----"+musicInfoList.size());
+        adapter.setOnCommonAdapterItemClick(new OnCommonAdapterItemClick() {
+            @Override
+            public void onItemClickListener(View v, int pos) {
+                MessageEvent event=new MessageEvent();
+                event.setMusicInfoList(musicInfoList);
+                event.setPos(pos);
+                EventBus.getDefault().post(event);
+            }
+        });
+
+    }
+
+
+    public void showPos(String type, int pos) {
+        Log.d("zt","singlefragment----"+pos);
+        currentItem = pos;
+        if (adapter!=null){
+            adapter.updateSelectItem(currentItem);
+            adapter.notifyDataSetChanged();
+        }
+
     }
 }
