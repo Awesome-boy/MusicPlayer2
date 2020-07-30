@@ -113,11 +113,8 @@ public class SinleFragment extends Fragment  {
     }
 
 
-    public void showPos(String type, int pos) {
-        Log.d("zt","singlefragment----"+pos);
-        currentItem = pos;
-        if (adapter!=null &&type.equals("single")){
-            adapter.updateSelectItem(currentItem);
+    public void refreshItem() {
+        if (adapter!=null){
             adapter.notifyDataSetChanged();
         }
 

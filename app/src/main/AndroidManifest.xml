@@ -45,7 +45,34 @@
         <service android:name=".service.AudioPlayerService"
             android:enabled="true"
             android:exported="true"/>
-
+        <receiver android:name=".receive.USBReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_MOUNTED" />
+                <data android:scheme="file" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_SCANNER_STARTED"/>
+                <action android:name="android.intent.action.MEDIA_SCANNER_FINISHED"/>
+                <data android:scheme="file"/>
+            </intent-filter>
+            <intent-filter>
+            <action android:name="android.intent.action.MEDIA_UNMOUNTED" />
+            <data android:scheme="file" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name=".receive.BluetoothMonitorReceiver"
+            android:exported="true">
+        <intent-filter>
+            <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
+            <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+            <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
+            <action android:name="android.btopp.intent.action.OPEN_RECEIVED_FILES" />
+        </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

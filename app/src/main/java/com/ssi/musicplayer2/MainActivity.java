@@ -4,13 +4,20 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.viewpager.widget.ViewPager;
 
 import android.Manifest;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -20,7 +27,17 @@ import android.widget.Toast;
 
 import com.ssi.musicplayer2.adapter.MainActivityFragmentAdapter;
 import com.ssi.musicplayer2.btFragment.BtFragment;
+import com.ssi.musicplayer2.database.DBManager;
+import com.ssi.musicplayer2.manager.MainStateInfo;
+import com.ssi.musicplayer2.manager.MainStateInfoViewModel;
+import com.ssi.musicplayer2.receive.BluetoothMonitorReceiver;
+import com.ssi.musicplayer2.receive.USBReceiver;
 import com.ssi.musicplayer2.usbFragment.UsbFragment;
+import com.ssi.musicplayer2.utils.SPUtils;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,26 +51,57 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     private MainActivityFragmentAdapter adapter;
     private ImageView iv_usbState;
     private ImageView iv_btState;
-    private int currentPos;
+    private int currentPos = 0;
     private Button btn_back;
     private ImageView music_lyric;
     private ImageView music_dir;
     private ImageView music_artist;
     private ImageView music_album;
+    private boolean btConnect;
+    private boolean usbConnect;
     private static final String[] permissionGroup =
             new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,
                     Manifest.permission.RECORD_AUDIO,
                     Manifest.permission.MODIFY_AUDIO_SETTINGS
             };
+    private BluetoothMonitorReceiver bleListenerReceiver;
+    private USBReceiver mUsbReceiver;
+    private IntentFilter mIntentFilter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initView();
+        registerListener();
         if (isNeedPermission()) {
             requestPermissions(permissionGroup, 1);
         }
 
+    }
+
+    private void registerListener() {
+        EventBus.getDefault().register(this);
+        // 初始化广播
+//        mUsbReceiver = new USBReceiver();
+//        mIntentFilter = new IntentFilter();
+//        mIntentFilter.addAction(Intent.ACTION_BOOT_COMPLETED);
+//        mIntentFilter.addAction(Intent.ACTION_MEDIA_MOUNTED);
+//        mIntentFilter.addAction(Intent.ACTION_MEDIA_REMOVED);
+//        mIntentFilter.addAction(Intent.ACTION_MEDIA_EJECT);
+//        mIntentFilter.addAction(Intent.ACTION_MEDIA_UNMOUNTED);
+//        mIntentFilter.addDataScheme("file");
+//        registerReceiver(mUsbReceiver, mIntentFilter);
+//
+//        this.bleListenerReceiver = new BluetoothMonitorReceiver();
+//        IntentFilter intentFilter = new IntentFilter();
+//        // 监视蓝牙关闭和打开的状态
+//        intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+//        // 监视蓝牙设备与APP连接的状态
+//        intentFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+//        intentFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+//        // 注册广播
+//        registerReceiver(this.bleListenerReceiver, intentFilter);
     }
 
     private boolean isNeedPermission() {
@@ -67,13 +115,19 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         return false;
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        boolean usbstate=SPUtils.getInstance(this).getBoolean("usb",false);
+        boolean btstate=SPUtils.getInstance(this).getBoolean("bt",false);
+        changeFragment(usbstate,btstate);
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         switch (requestCode) {
             case 1:
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//                    checkSkip();
                 } else {
                     Toast.makeText(this, "必须同意所有权限才能使用本程序", Toast.LENGTH_SHORT).show();
                     finish();
@@ -103,6 +157,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         music_dir = findViewById(R.id.music_dir);
         music_artist = findViewById(R.id.music_artist);
         music_album = findViewById(R.id.music_album);
+        tv_usb_title.setOnClickListener(this);
+        tv_bt_title.setOnClickListener(this);
     }
 
 
@@ -136,6 +192,60 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
             case R.id.bt_back:
                 moveTaskToBack(true);
                 break;
+            case R.id.usb_pager_title:
+                viewPager.setCurrentItem(0,true);
+                break;
+            case R.id.bt_pager_title:
+                viewPager.setCurrentItem(1,true);
+                break;
         }
     }
+
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessage(MainStateInfo mainStateInfo) {
+        switchState(mainStateInfo);
+    }
+
+    private void switchState(MainStateInfo mainStateInfo) {
+        if (mainStateInfo == null) {
+            return;
+        }
+        if (mainStateInfo.isBtConnectChange) {
+            btConnect = mainStateInfo.mBtState == 1;
+            SPUtils.getInstance(this).save("bt",btConnect);
+        } else {
+            usbConnect = mainStateInfo.mUsbState == 1;
+            SPUtils.getInstance(this).save("usb",usbConnect);
+        }
+        boolean usbstate=SPUtils.getInstance(this).getBoolean("usb",false);
+        boolean btstate=SPUtils.getInstance(this).getBoolean("bt",false);
+        changeFragment(usbstate,btstate);
+        Log.d("zt","usb连接状态-----"+usbstate+"--蓝牙连接状态---"+btstate);
+
+    }
+
+    private void changeFragment(boolean usb,boolean bluetooth) {
+        if (!usb) {
+            DBManager.getInstance(this).deleteAllTable();
+        }
+        if (!usb && bluetooth) {
+            viewPager.setCurrentItem(1, true);
+        } else if ((usb && !bluetooth) || (bluetooth && usb)) {
+            viewPager.setCurrentItem(0, true);
+        } else if (!bluetooth && !usb) {
+            Toast.makeText(this, "请插入usb设备", Toast.LENGTH_SHORT).show();
+            moveTaskToBack(true);
+        }
+
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        EventBus.getDefault().unregister(this);
+//        unregisterReceiver(this.bleListenerReceiver);
+//        unregisterReceiver(this.mUsbReceiver);
+    }
+
 }

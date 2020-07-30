@@ -93,7 +93,6 @@ public class ArtistFragment extends Fragment {
                 singleAdapter.setOnCommonAdapterItemClick(new OnCommonAdapterItemClick() {
                     @Override
                     public void onItemClickListener(View v, int pos, String type) {
-                        Toast.makeText(mContext, type, Toast.LENGTH_SHORT).show();
                         if (type.equals("singer")) {
                             MessageEvent event = new MessageEvent();
                             event.setType(type);
@@ -122,17 +121,13 @@ public class ArtistFragment extends Fragment {
         singerInfoList.clear();
         dbList = MyMusicUtil.groupBySinger((ArrayList) dbManager.getAllMusicFromMusicTable());
         singerInfoList.addAll(dbList);
-//        if (singleAdapter!=null &&currentItem!=-1){
-//            singleAdapter.updateSelectItem(currentItem);
-//        }
         adapter.notifyDataSetChanged();
     }
 
-    public void showPos(String singer, int posId) {
-        currentItem = posId;
-        if (singleAdapter!=null &&singer.equals("singer")){
-            singleAdapter.updateSelectItem(posId);
+    public void refreshItem() {
+        if (singleAdapter!=null){
             singleAdapter.notifyDataSetChanged();
         }
+
     }
 }

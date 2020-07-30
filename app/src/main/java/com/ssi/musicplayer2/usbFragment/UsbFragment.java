@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.database.Cursor;
-import android.media.MediaMetadata;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
@@ -21,6 +20,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -31,9 +31,12 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
+import com.ssi.musicplayer2.MainActivity;
+import com.ssi.musicplayer2.MyApplication;
 import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.database.DBManager;
 import com.ssi.musicplayer2.javabean.MusicInfo;
+import com.ssi.musicplayer2.manager.MainStateInfo;
 import com.ssi.musicplayer2.service.AudioPlayerService;
 import com.ssi.musicplayer2.service.MediaPlayerHelper;
 import com.ssi.musicplayer2.service.MessageEvent;
@@ -41,6 +44,7 @@ import com.ssi.musicplayer2.utils.ChineseToEnglish;
 import com.ssi.musicplayer2.utils.Constant;
 import com.ssi.musicplayer2.utils.Logger;
 import com.ssi.musicplayer2.utils.MyMusicUtil;
+import com.ssi.musicplayer2.utils.SPUtils;
 import com.ssi.musicplayer2.utils.Utils;
 import com.ssi.musicplayer2.view.MediaSeekBar;
 
@@ -73,12 +77,11 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         public void onPlaybackStateChanged(PlaybackStateCompat state) {
             switch (state.getState()) {
                 case PlaybackStateCompat.STATE_NONE://无任何状态
-                    btn_play.setBackgroundResource(R.drawable.img_pause);
-                    break;
                 case PlaybackStateCompat.STATE_PLAYING:
                     btn_play.setBackgroundResource(R.drawable.img_pause);
                     break;
                 case PlaybackStateCompat.STATE_PAUSED:
+                case PlaybackStateCompat.STATE_STOPPED:
                     btn_play.setBackgroundResource(R.drawable.img_play);
                     break;
                 case PlaybackStateCompat.STATE_SKIPPING_TO_NEXT://下一首
@@ -95,7 +98,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         @Override
         public void onMetadataChanged(MediaMetadataCompat metadata) {
             super.onMetadataChanged(metadata);
-            if (metadata == null ||mMediaPlayerHelper==null) {
+            if (metadata == null || mMediaPlayerHelper == null) {
                 Logger.i(TAG, "onMetadataChanged return for null");
                 return;
             }
@@ -117,17 +120,22 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     private ImageView music_artist;
     private ImageView music_album;
     private Fragment currentFragment;
+    private TextView song_title;
+    private TextView song_order;
+    private TextView song_album;
+    private TextView song_artist;
+    private FrameLayout frameLayout;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mContext = getContext();
         EventBus.getDefault().register(this);
     }
 
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
+        mContext = context;
     }
 
     @Override
@@ -154,10 +162,9 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         initView(view);
-        dbManager = DBManager.getInstance(mContext);
         final List<String> path = Utils.getUSBPaths(mContext);
         if (path != null && path.size() > 0) {
-            showDialog();
+            showDialog(getActivity());
             startScanLocalMusic(path.get(0));
         }
         Intent intent = new Intent(mContext, AudioPlayerService.class);
@@ -171,15 +178,25 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         refreshItem();
     }
 
-    private void refreshItem(){
-        if (mMediaPlayerHelper!=null){
-            int posId=mMediaPlayerHelper.getPlayId();
-            if (currentFragment instanceof  SinleFragment){
-                ((SinleFragment) currentFragment).showPos("single",posId);
-            }else if (currentFragment instanceof ArtistFragment){
-                ((ArtistFragment) currentFragment).showPos("singer",posId);
-            }else if (currentFragment instanceof AlbumFragment){
-                ((AlbumFragment) currentFragment).showPos("album",posId);
+    private void refreshItem() {
+        if (mMediaPlayerHelper != null && musicInfoList != null && musicInfoList.size() > 0) {
+            if (SPUtils.getInstance(mContext).getBoolean("usb",false) &&scanData){
+                int posId = mMediaPlayerHelper.getPos();
+                String path = musicInfoList.get(posId).getPath();
+                String name = musicInfoList.get(posId).getName();
+                String album = musicInfoList.get(posId).getAlbum();
+                String singer = musicInfoList.get(posId).getSinger();
+                song_title.setText(name);
+                song_order.setText("(" + (posId + 1) + "/" + musicInfoList.size() + "）");
+                song_album.setText(album);
+                song_artist.setText(singer);
+            }
+            if (currentFragment instanceof SinleFragment) {
+                ((SinleFragment) currentFragment).refreshItem();
+            } else if (currentFragment instanceof AlbumFragment) {
+                ((AlbumFragment) currentFragment).refreshItem();
+            } else if (currentFragment instanceof ArtistFragment) {
+                ((ArtistFragment) currentFragment).refreshItem();
             }
         }
 
@@ -187,39 +204,81 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
 
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onMessage(MessageEvent messageEvent) {
-        MessageEvent event=messageEvent;
-        List<MusicInfo> musicInfoList=event.getMusicInfoList();
-        int pos=event.getPos();
-        if (mMediaPlayerHelper!=null){
-            mMediaPlayerHelper.setPlayeData(musicInfoList);
-            mMediaPlayerHelper.setPlayID(pos);
+    public void onMessage(Object o) {
+        if (o instanceof MessageEvent) {
+            MessageEvent event = (MessageEvent) o;
+            musicInfoList = event.getMusicInfoList();
+            int pos = event.getPos();
+            if (mMediaPlayerHelper != null) {
+                mMediaPlayerHelper.setPlayeData(musicInfoList);
+                mMediaPlayerHelper.setPlayID(pos);
+            }
+        } else if (o instanceof MainStateInfo) {
+            MainStateInfo mainStateInfo = (MainStateInfo) o;
+            if (!mainStateInfo.isBtConnectChange) {
+                if (mainStateInfo.mUsbState == 1) {
+                    final List<String> path = Utils.getUSBPaths(mContext);
+                    if (path != null && path.size() > 0) {
+                        showDialog(mContext);
+                        startScanLocalMusic(path.get(0));
+                        music_lyric.setClickable(true);
+                        music_dir.setClickable(true);
+                        music_artist.setClickable(true);
+                        music_album.setClickable(true);
+                    }
+                }else {
+                    if (mMediaController != null) {
+                        mMediaController.getTransportControls().pause();
+                        mMediaPlayerHelper.mMediaPlayer.reset();
+                        mMediaController = null;
+                    }
+                    music_lyric.setClickable(false);
+                    music_dir.setClickable(false);
+                    music_artist.setClickable(false);
+                    music_album.setClickable(false);
+                    music_lyric.setSelected(false);
+                    music_dir.setSelected(false);
+                    music_artist.setSelected(false);
+                    music_album.setSelected(false);
+                    song_title.setText("歌曲名称");
+                    song_order.setText("顺序");
+                    song_album.setText("专辑名称");
+                    song_artist.setText("歌手");
+                    seekBar.setProgress(0);
+                    frameLayout.setVisibility(View.GONE);
+
+                }
+            }
         }
+
     }
 
-    private void showDialog() {
-        progressDialog = new ProgressDialog(mContext);
+    private void showDialog(Context context) {
+        progressDialog = new ProgressDialog(context);
         progressDialog.setMessage("音乐搜索中...");
         progressDialog.setIndeterminate(true);// 是否形成一个加载动画  true表示不明确加载进度形成转圈动画  false 表示明确加载进度
         progressDialog.setCancelable(false);//点击返回键或者dialog四周是否关闭dialog  true表示可以关闭 false表示不可关闭
         progressDialog.show();
     }
-
+    private boolean scanData;
     private Handler handler = new Handler() {
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             switch (msg.what) {
                 case Constant.SCAN_NO_MUSIC:
-                    Toast.makeText(mContext, "本地没有歌曲，快去下载吧", Toast.LENGTH_SHORT).show();
+                    scanData=false;
+                    Toast.makeText(MyApplication.getContext(), "本地没有歌曲，快去下载吧", Toast.LENGTH_SHORT).show();
                     scanComplete();
                     break;
                 case Constant.SCAN_ERROR:
-                    Toast.makeText(mContext, "数据库错误", Toast.LENGTH_LONG).show();
+                    scanData=false;
+                    Toast.makeText(getActivity(), "数据库错误", Toast.LENGTH_LONG).show();
                     scanComplete();
                     break;
                 case Constant.SCAN_COMPLETE:
                     initCurPlaying();
                     scanComplete();
+                    scanData=true;
                     break;
                 case Constant.SCAN_UPDATE:
 //                        int updateProgress = msg.getData().getInt("progress");
@@ -232,7 +291,6 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     };
 
 
-
     private void refreshState() {
         if (mMediaController != null) {
             if (mMediaController.getPlaybackState().getState() == PlaybackStateCompat.STATE_PLAYING) {
@@ -240,7 +298,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
             } else {
                 btn_play.setBackgroundResource(R.drawable.img_play);
             }
-        }else {
+        } else {
             btn_play.setBackgroundResource(R.drawable.img_play);
         }
     }
@@ -262,106 +320,14 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     }
 
     public void startScanLocalMusic(final String path) {
+        dbManager = DBManager.getInstance(MyApplication.getContext());
         new Thread() {
             @Override
             public void run() {
                 super.run();
                 try {
-                    String[] muiscInfoArray = new String[]{
-                            MediaStore.Audio.Media.TITLE,               //歌曲名称
-                            MediaStore.Audio.Media.ARTIST,              //歌曲歌手
-                            MediaStore.Audio.Media.ALBUM,               //歌曲的专辑名
-                            MediaStore.Audio.Media.DURATION,            //歌曲时长
-                            MediaStore.Audio.Media.DATA};               //歌曲文件的全路径
-//                    Cursor cursor = getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-//                            muiscInfoArray, null, null, null);
-                    Cursor cursor = mContext.getContentResolver().query(
-                            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, muiscInfoArray,
-                            MediaStore.Audio.Media.DATA + " like ?",
-                            new String[]{path + "%"},
-                            MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
-                    if (cursor != null && cursor.getCount() != 0) {
-                        musicInfoList = new ArrayList<MusicInfo>();
-                        Log.i(TAG, "run: cursor.getCount() = " + cursor.getCount());
-                        while (cursor.moveToNext()) {
-//                            if (!scanning){
-//                                return;
-//                            }
-//                            String songTile = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
-//                            String artist = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
-//                            String album = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
-//                            int duration = cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION));
-                            String name = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
-                            String singer = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
-                            String album = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
-                            String path = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
-//                            int id = cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID));
-//                            String path = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.AudioColumns.DATA));
-//                            String duration = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION));
-//                            if (filterCb.isChecked() && duration != null && Long.valueOf(duration) < 1000 * 60){
-//                                Log.e(TAG, "run: name = "+name+" duration < 1000 * 60" );
-//                                continue;
-//                            }
-
-                            Log.d("zt", "------" + path+"----");
-
-                            File file = new File(path);
-                            String parentPath = file.getParentFile().getPath();
-
-                            name = replaseUnKnowe(name);
-                            singer = replaseUnKnowe(singer);
-                            album = replaseUnKnowe(album);
-                            path = replaseUnKnowe(path);
-
-                            MusicInfo musicInfo = new MusicInfo();
-
-                            musicInfo.setName(name);
-                            musicInfo.setSinger(singer);
-                            musicInfo.setAlbum(album);
-                            musicInfo.setPath(path);
-                            Log.e(TAG, "run: parentPath = " + parentPath);
-                            musicInfo.setParentPath(parentPath);
-                            musicInfo.setFirstLetter(ChineseToEnglish.StringToPinyinSpecial(name).toUpperCase().charAt(0) + "");
-
-                            musicInfoList.add(musicInfo);
-//                            progress++;
-//                            scanPath = path;
-//                            musicCount = cursor.getCount();
-//                            msg = new Message();    //每次都必须new，必须发送新对象，不然会报错
-//                            msg.what = Constant.SCAN_UPDATE;
-//                            msg.arg1 = musicCount;
-//                                Bundle data = new Bundle();
-//                                data.putInt("progress", progress);
-//                                data.putString("scanPath", scanPath);
-//                                msg.setData(data);
-//                            handler.sendMessage(msg);  //更新UI界面
-//                            try {
-//                                sleep(50);
-//                            } catch (InterruptedException e) {
-//                                e.printStackTrace();
-//                            }
-                        }
-
-                        //扫描完成获取一下当前播放音乐及路径
-                        curMusicId = MyMusicUtil.getIntShared(Constant.KEY_ID);
-                        curMusicPath = dbManager.getMusicPath(curMusicId);
-
-                        // 根据a-z进行排序源数据
-                        Collections.sort(musicInfoList);
-                        dbManager.updateAllMusic(musicInfoList);
-                        //扫描完成
-                        msg = new Message();
-                        msg.what = Constant.SCAN_COMPLETE;
-                        handler.sendMessage(msg);  //更新UI界面
-
-                    } else {
-                        msg = new Message();
-                        msg.what = Constant.SCAN_NO_MUSIC;
-                        handler.sendMessage(msg);  //更新UI界面
-                    }
-                    if (cursor != null) {
-                        cursor.close();
-                    }
+//                    querySong(path);
+                    querySong1(path);
                 } catch (Exception e) {
                     e.printStackTrace();
                     Log.e(TAG, "run: error = ", e);
@@ -372,6 +338,118 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
                 }
             }
         }.start();
+    }
+
+    private void querySong1(String filepath) {
+        String[] muiscInfoArray = new String[]{
+                MediaStore.Audio.Media.TITLE,               //歌曲名称
+                MediaStore.Audio.Media.ARTIST,              //歌曲歌手
+                MediaStore.Audio.Media.ALBUM,               //歌曲的专辑名
+                MediaStore.Audio.Media.DURATION,            //歌曲时长
+                MediaStore.Audio.Media.DATA};               //歌曲文件的全路径
+        Cursor cursor = MyApplication.getContext().getContentResolver().query(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, muiscInfoArray,
+                MediaStore.Audio.Media.DATA + " like ?",
+                new String[]{filepath + "%"},
+                MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
+        if (cursor != null && cursor.getCount() != 0) {
+            musicInfoList = new ArrayList<MusicInfo>();
+            Log.i(TAG, "run: cursor.getCount() = " + cursor.getCount());
+            while (cursor.moveToNext()) {
+                String name = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
+                String singer = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
+                String album = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
+                String path = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
+                Log.d("zt", "------" + path + "----");
+                File file = new File(path);
+                String parentPath = file.getParentFile().getPath();
+
+                name = replaseUnKnowe(name);
+                singer = replaseUnKnowe(singer);
+                album = replaseUnKnowe(album);
+                path = replaseUnKnowe(path);
+
+                MusicInfo musicInfo = new MusicInfo();
+
+                musicInfo.setName(name);
+                musicInfo.setSinger(singer);
+                musicInfo.setAlbum(album);
+                musicInfo.setPath(path);
+                Log.e(TAG, "run: parentPath = " + parentPath);
+                musicInfo.setParentPath(parentPath);
+                musicInfo.setFirstLetter(ChineseToEnglish.StringToPinyinSpecial(name).toUpperCase().charAt(0) + "");
+                musicInfoList.add(musicInfo);
+
+            }
+
+            //扫描完成获取一下当前播放音乐及路径
+            curMusicId = MyMusicUtil.getIntShared(Constant.KEY_ID);
+            curMusicPath = dbManager.getMusicPath(curMusicId);
+
+            // 根据a-z进行排序源数据
+            Collections.sort(musicInfoList);
+            dbManager.updateAllMusic(musicInfoList);
+            //扫描完成
+            msg = new Message();
+            msg.what = Constant.SCAN_COMPLETE;
+            handler.sendMessage(msg);  //更新UI界面
+
+        } else {
+            msg = new Message();
+            msg.what = Constant.SCAN_NO_MUSIC;
+            handler.sendMessage(msg);  //更新UI界面
+        }
+        if (cursor != null) {
+            cursor.close();
+        }
+    }
+
+    private void querySong(String filepath) {
+        Cursor cursor = getContext().getContentResolver().query(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null,
+                MediaStore.Audio.Media.DATA + " like ?",
+                new String[]{filepath + "%"},
+                MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
+
+        if (cursor == null) return;
+
+        //id title singer data time image
+        for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
+            // 如果不是音乐
+            String isMusic = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.IS_MUSIC));
+            if (isMusic != null && isMusic.equals("")) continue;
+            String name = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
+            String singer = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
+            String album = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
+            String path = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
+            Log.d("zt", "------" + path + "----");
+            File file = new File(path);
+            String parentPath = file.getParentFile().getPath();
+
+            name = replaseUnKnowe(name);
+            singer = replaseUnKnowe(singer);
+            album = replaseUnKnowe(album);
+            path = replaseUnKnowe(path);
+
+            MusicInfo musicInfo = new MusicInfo();
+
+            musicInfo.setName(name);
+            musicInfo.setSinger(singer);
+            musicInfo.setAlbum(album);
+            musicInfo.setPath(path);
+            Log.e(TAG, "run: parentPath = " + parentPath);
+            musicInfo.setParentPath(parentPath);
+            musicInfo.setFirstLetter(ChineseToEnglish.StringToPinyinSpecial(name).toUpperCase().charAt(0) + "");
+            musicInfoList.add(musicInfo);
+        }
+        // 根据a-z进行排序源数据
+        Collections.sort(musicInfoList);
+        dbManager.updateAllMusic(musicInfoList);
+        //扫描完成
+        msg = new Message();
+        msg.what = Constant.SCAN_COMPLETE;
+        handler.sendMessage(msg);  //更新UI界面
+        cursor.close();
     }
 
     public static String replaseUnKnowe(String oldStr) {
@@ -421,6 +499,12 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         music_artist.setOnClickListener(this);
         music_album = getActivity().findViewById(R.id.music_album);
         music_album.setOnClickListener(this);
+
+        song_title = view.findViewById(R.id.song_title);
+        song_order = view.findViewById(R.id.song_order);
+        song_album = view.findViewById(R.id.song_album);
+        song_artist = view.findViewById(R.id.song_artist);
+        frameLayout = view.findViewById(R.id.muisc_list);
     }
 
     @Override
@@ -481,6 +565,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
 
     //正确的做法
     private void switchFragment(Fragment targetFragment) {
+        frameLayout.setVisibility(View.VISIBLE);
         FragmentTransaction transaction = getChildFragmentManager().beginTransaction();
         if (!targetFragment.isAdded()) {
             transaction.add(R.id.muisc_list, targetFragment)
@@ -593,4 +678,5 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         int second = musicTime % 60;
         song_duration_time.setText(minute + ":" + (second > 9 ? second : "0" + second));
     }
+
 }

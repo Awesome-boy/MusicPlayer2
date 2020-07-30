@@ -18,7 +18,6 @@ import com.ssi.musicplayer2.javabean.MusicInfo;
 import com.ssi.musicplayer2.utils.Constant;
 import com.ssi.musicplayer2.utils.MyMusicUtil;
 
-import java.util.Collections;
 import java.util.List;
 
 public class SingleAdapter extends RecyclerView.Adapter<SingleAdapter.ViewHolder> {
@@ -27,53 +26,46 @@ public class SingleAdapter extends RecyclerView.Adapter<SingleAdapter.ViewHolder
     private List<MusicInfo> musicInfoList;
     private LayoutInflater layoutInflater;
     private OnCommonAdapterItemClick onCommonAdapterItemClick;
-    private int currentPos=-1;
     private String type;
 
     public void setOnCommonAdapterItemClick(OnCommonAdapterItemClick onCommonAdapterItemClick) {
         this.onCommonAdapterItemClick = onCommonAdapterItemClick;
     }
 
-    public SingleAdapter(Context mContext, List<MusicInfo> musicInfoList,String type) {
-        this.context=mContext;
-        this.musicInfoList=musicInfoList;
-        this.type=type;
-        layoutInflater=LayoutInflater.from(mContext);
+    public SingleAdapter(Context mContext, List<MusicInfo> musicInfoList, String type) {
+        this.context = mContext;
+        this.musicInfoList = musicInfoList;
+        this.type = type;
+        layoutInflater = LayoutInflater.from(mContext);
     }
 
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view=layoutInflater.inflate(R.layout.single_item,parent,false);
+        View view = layoutInflater.inflate(R.layout.single_item, parent, false);
         return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        MusicInfo musicInfo=musicInfoList.get(position);
-        holder.textView.setText(position+1+"、"+musicInfo.getName());
-        if (musicInfo.getId()==MyMusicUtil.getIntShared(Constant.KEY_ID)){
+        MusicInfo musicInfo = musicInfoList.get(position);
+        holder.textView.setText(position + 1 + "、" + musicInfo.getName());
+        if (musicInfo.getId() == MyMusicUtil.getIntShared(Constant.KEY_ID)) {
             holder.textView.setTextColor(context.getColor(R.color.context_text_color));
             holder.imageView.setVisibility(View.VISIBLE);
-        }else {
+        } else {
             holder.textView.setTextColor(context.getColor(R.color.normal_text_color));
             holder.imageView.setVisibility(View.INVISIBLE);
         }
+
+
         holder.ll_item.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (onCommonAdapterItemClick!=null){
-                    updateSelectItem(position);
-                    if (type.equals("singer")) {
-                        MyMusicUtil.setShared(Constant.KEY_LIST, Constant.LIST_SINGER);
-                    } else if (type.equals("album")) {
-                        MyMusicUtil.setShared(Constant.KEY_LIST, Constant.LIST_ALBUM);
-                    } else if (type.equals("folder")) {
-                        MyMusicUtil.setShared(Constant.KEY_LIST, Constant.LIST_FOLDER);
-                    }else if (type.equals("single")){
-                        MyMusicUtil.setShared(Constant.KEY_ID, Constant.LIST_SINGLE);
-                    }
-                    onCommonAdapterItemClick.onItemClickListener(v,position,type);
+                if (onCommonAdapterItemClick != null) {
+                     MyMusicUtil.setShared(Constant.KEY_ID,musicInfo.getId());
+                     notifyDataSetChanged();
+                    onCommonAdapterItemClick.onItemClickListener(v, position, type);
                 }
             }
         });
@@ -83,7 +75,7 @@ public class SingleAdapter extends RecyclerView.Adapter<SingleAdapter.ViewHolder
 
     @Override
     public int getItemCount() {
-        return musicInfoList==null?0:musicInfoList.size();
+        return musicInfoList == null ? 0 : musicInfoList.size();
     }
 
     public void updateMusicInfoList(List<MusicInfo> musicInfoList) {
@@ -93,8 +85,7 @@ public class SingleAdapter extends RecyclerView.Adapter<SingleAdapter.ViewHolder
     }
 
     public void updateSelectItem(int pos) {
-        currentPos=pos;
-        MyMusicUtil.setShared(Constant.KEY_ID, musicInfoList.get(currentPos).getId());
+        MyMusicUtil.setShared(Constant.KEY_ID,pos);
         notifyDataSetChanged();
     }
 

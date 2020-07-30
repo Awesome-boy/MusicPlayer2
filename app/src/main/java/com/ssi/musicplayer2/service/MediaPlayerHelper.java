@@ -114,6 +114,7 @@ public class MediaPlayerHelper implements
                         //设置音频信息；
                         mMediaSession.setMetadata(getMusicEntity(entity.getName(),
                                 entity.getSinger(), entity.getAlbum()));
+                        MyMusicUtil.setShared(Constant.KEY_ID,list_data.get(last_index).getId());
                         Log.d("zt",list_data.get(last_index).getId()+"---"+last_index);
                         break;
                 }
@@ -349,8 +350,10 @@ public class MediaPlayerHelper implements
         mMediaSessionCallback.onPlayFromUri(null,null);
     }
 
-    public int getPlayId(){
-        return last_index;
+
+
+    public int getPos(){
+        return this.last_index;
     }
 
     public interface MediaPlayerUpdateCallBack {

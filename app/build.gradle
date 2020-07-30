@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId "com.ssi.musicplayer2"
-        minSdkVersion 26
+        minSdkVersion 28
         targetSdkVersion 29
         versionCode 1
         versionName "1.0"

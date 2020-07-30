@@ -93,7 +93,6 @@ public class AlbumFragment extends Fragment {
                 singleAdapter.setOnCommonAdapterItemClick(new OnCommonAdapterItemClick() {
                     @Override
                     public void onItemClickListener(View v, int pos, String type) {
-                        Toast.makeText(mContext,type,Toast.LENGTH_SHORT).show();
                         if (type.equals("album")) {
                             MessageEvent event = new MessageEvent();
                             event.setType(type);
@@ -124,11 +123,8 @@ public class AlbumFragment extends Fragment {
         albumInfoList.addAll(dbList);
         adapter.notifyDataSetChanged();
     }
-
-    public void showPos(String type, int posId) {
-        currentItem = posId;
-        if (singleAdapter!=null && type.equals("album")){
-            singleAdapter.updateSelectItem(posId);
+    public void refreshItem() {
+        if (singleAdapter!=null){
             singleAdapter.notifyDataSetChanged();
         }
     }
