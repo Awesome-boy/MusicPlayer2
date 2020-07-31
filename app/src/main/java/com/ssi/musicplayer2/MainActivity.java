@@ -25,6 +25,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
+import com.dfssi.android.framework.ui.view.TableIndexView;
 import com.ssi.musicplayer2.adapter.MainActivityFragmentAdapter;
 import com.ssi.musicplayer2.btFragment.BluetoothMainFragment;
 import com.ssi.musicplayer2.database.DBManager;
@@ -67,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     private BluetoothMonitorReceiver bleListenerReceiver;
     private USBReceiver mUsbReceiver;
     private IntentFilter mIntentFilter;
+    private TableIndexView mTableIndexView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -159,6 +161,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         viewPager.setAdapter(adapter);
         viewPager.addOnPageChangeListener(this);
         viewPager.setCurrentItem(0, true);
+        mTableIndexView = findViewById(R.id.index_view);
+        mTableIndexView.setTableIndex(0, 2);
         tv_usb_title.setSelected(true);
         music_lyric = findViewById(R.id.music_lyric);
         music_dir = findViewById(R.id.music_dir);
@@ -166,6 +170,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         music_album = findViewById(R.id.music_album);
         tv_usb_title.setOnClickListener(this);
         tv_bt_title.setOnClickListener(this);
+        findViewById(R.id.empty_view).setVisibility(View.GONE);
     }
 
 
@@ -185,7 +190,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         music_dir.setVisibility(position == 0 ? View.VISIBLE : View.INVISIBLE);
         music_artist.setVisibility(position == 0 ? View.VISIBLE : View.INVISIBLE);
         music_album.setVisibility(position == 0 ? View.VISIBLE : View.INVISIBLE);
-
+        mTableIndexView.setTableIndex(position, 2);
     }
 
     @Override

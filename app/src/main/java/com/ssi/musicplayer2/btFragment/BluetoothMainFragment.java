@@ -14,6 +14,7 @@ import androidx.fragment.app.FragmentManager;
 import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.btFragment.client.BluetoothConnectionHelper;
 import com.ssi.musicplayer2.utils.Logger;
+import com.ssi.musicplayer2.utils.SPUtils;
 
 
 public class BluetoothMainFragment extends SubFragment implements BluetoothConnectionHelper.ConnectionStateListener{
@@ -74,10 +75,11 @@ public class BluetoothMainFragment extends SubFragment implements BluetoothConne
             Logger.e(TAG, "initView return for host activity is null");
             return;
         }
+        activity.findViewById(R.id.empty_view).setVisibility(View.GONE);
         if (mFm == null) {
             mFm = activity.getSupportFragmentManager();
         }
-        if (BluetoothConnectionHelper.isConnectedToOtherDevice() == BluetoothAdapter.STATE_DISCONNECTED) {
+        if (!SPUtils.getInstance(getContext()).getBoolean("bt",false)) {
             if (mBTConnectionFragment == null) {
                 mBTConnectionFragment = new BTConnectionFragment();
             }
