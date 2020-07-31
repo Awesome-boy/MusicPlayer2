@@ -27,7 +27,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             applicationVariants.all { variant ->
                 variant.outputs.all {
-                    def fileName="meetMusic.apk"
+                    def fileName="musicplayer2.apk"
                     outputFileName = fileName
                 }
             }
@@ -42,7 +42,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             applicationVariants.all { variant ->
                 variant.outputs.all {
-                    def fileName="meetMusic.apk"
+                    def fileName="musicplayer2.apk"
                     outputFileName = fileName
                 }
             }
@@ -61,6 +61,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     implementation files('libs/juniversalchardet-1.0.3.jar')
+    implementation files('../SystemLibs/framewok_hide.jar')
     testImplementation 'junit:junit:4.12'
     implementation 'androidx.core:core:1.2.0'
     implementation "androidx.media:media:1.1.0"
@@ -74,5 +75,9 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
     implementation 'com.belerweb:pinyin4j:2.5.0'
     implementation project(':d760ui')
+    implementation project(':ssiframework')
+//    implementation project(':proxy')
+
+
 
 }

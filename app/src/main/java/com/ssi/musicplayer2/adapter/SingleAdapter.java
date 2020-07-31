@@ -50,6 +50,7 @@ public class SingleAdapter extends RecyclerView.Adapter<SingleAdapter.ViewHolder
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         MusicInfo musicInfo = musicInfoList.get(position);
         holder.textView.setText(position + 1 + "、" + musicInfo.getName());
+        Log.d("zt","-singleadapter---"+MyMusicUtil.getIntShared(Constant.KEY_ID));
         if (musicInfo.getId() == MyMusicUtil.getIntShared(Constant.KEY_ID)) {
             holder.textView.setTextColor(context.getColor(R.color.context_text_color));
             holder.imageView.setVisibility(View.VISIBLE);

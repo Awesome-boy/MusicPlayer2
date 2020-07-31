@@ -1,2 +1,2 @@
-include ':app',':d760ui'
+include ':app',':d760ui',':ssiframework'
 rootProject.name = "MusicPlayer2"

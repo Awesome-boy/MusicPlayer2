@@ -7,7 +7,8 @@
     <!--读取外部存储权限-->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" />
+    <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS"
+        tools:ignore="ProtectedPermissions" />
 
     <!--蓝牙相关权限-->
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
@@ -48,20 +49,19 @@
         <receiver android:name=".receive.USBReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.MEDIA_MOUNTED" />
-                <data android:scheme="file" />
-            </intent-filter>
-            <intent-filter>
                 <action android:name="android.intent.action.MEDIA_SCANNER_STARTED"/>
                 <action android:name="android.intent.action.MEDIA_SCANNER_FINISHED"/>
+                <action android:name="android.intent.action.MEDIA_CHECKING"/>
+                <action android:name="android.intent.action.MEDIA_SHARED"/>
+                <action android:name="android.intent.action.MEDIA_BAD_REMOVAL"/>
+                <action android:name="android.intent.action.MEDIA_EJECT"/>
+                <action android:name="android.intent.action.MEDIA_NOFS"/>
+                <action android:name="android.intent.action.MEDIA_BUTTON"/>
+                <action android:name="android.intent.action.MEDIA_SCANNER_SCAN_FILE"/>
+                <action android:name="android.intent.action.MEDIA_UNMOUNTED" />
+                <action android:name="android.intent.action.MEDIA_MOUNTED" />
+                <action android:name="android.intent.action.MEDIA_REMOVED"/>
                 <data android:scheme="file"/>
-            </intent-filter>
-            <intent-filter>
-            <action android:name="android.intent.action.MEDIA_UNMOUNTED" />
-            <data android:scheme="file" />
             </intent-filter>
         </receiver>
         <receiver android:name=".receive.BluetoothMonitorReceiver"
@@ -73,6 +73,10 @@
             <action android:name="android.btopp.intent.action.OPEN_RECEIVED_FILES" />
         </intent-filter>
         </receiver>
+
+        <service android:name=".btFragment.service.BluetoothMusicService"
+            android:enabled="true"
+            android:exported="true"/>
     </application>
 
 </manifest>

@@ -115,6 +115,7 @@ public class SinleFragment extends Fragment  {
 
     public void refreshItem() {
         if (adapter!=null){
+            Log.d("zt","adpter"+"----");
             adapter.notifyDataSetChanged();
         }
 

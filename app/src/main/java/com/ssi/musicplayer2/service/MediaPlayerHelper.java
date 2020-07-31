@@ -94,6 +94,9 @@ public class MediaPlayerHelper implements
         //就是activity和notification的播放的回调方法。都会走到这里进行加载网络音频
         @Override
         public void onPlayFromUri(Uri uri, Bundle extras) {
+            if (list_data==null ||list_data.size()==0){
+                return;
+            }
             MusicInfo entity = list_data.get(last_index);
             try {
                 switch (mPlaybackState.getState()) {
@@ -115,7 +118,7 @@ public class MediaPlayerHelper implements
                         mMediaSession.setMetadata(getMusicEntity(entity.getName(),
                                 entity.getSinger(), entity.getAlbum()));
                         MyMusicUtil.setShared(Constant.KEY_ID,list_data.get(last_index).getId());
-                        Log.d("zt",list_data.get(last_index).getId()+"---"+last_index);
+                        Log.d("zt","准备播放的歌曲"+list_data.get(last_index).getId()+"---"+last_index);
                         break;
                 }
             } catch (IOException e) {

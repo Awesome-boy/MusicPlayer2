@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_height="match_parent"
+    android:layout_width="match_parent">
+    <item android:state_pressed="true" >
+        <nine-patch android:src="@drawable/btn_cancle_cust"/>
+    </item>
+    <item >
+        <nine-patch android:src="@drawable/btn_sure_cust"/>
+    </item>
+</selector>

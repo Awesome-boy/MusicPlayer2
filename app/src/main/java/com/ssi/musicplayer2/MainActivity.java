@@ -26,7 +26,7 @@ import android.widget.Toast;
 
 
 import com.ssi.musicplayer2.adapter.MainActivityFragmentAdapter;
-import com.ssi.musicplayer2.btFragment.BtFragment;
+import com.ssi.musicplayer2.btFragment.BluetoothMainFragment;
 import com.ssi.musicplayer2.database.DBManager;
 import com.ssi.musicplayer2.manager.MainStateInfo;
 import com.ssi.musicplayer2.manager.MainStateInfoViewModel;
@@ -83,15 +83,22 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     private void registerListener() {
         EventBus.getDefault().register(this);
         // 初始化广播
-//        mUsbReceiver = new USBReceiver();
-//        mIntentFilter = new IntentFilter();
-//        mIntentFilter.addAction(Intent.ACTION_BOOT_COMPLETED);
-//        mIntentFilter.addAction(Intent.ACTION_MEDIA_MOUNTED);
-//        mIntentFilter.addAction(Intent.ACTION_MEDIA_REMOVED);
-//        mIntentFilter.addAction(Intent.ACTION_MEDIA_EJECT);
-//        mIntentFilter.addAction(Intent.ACTION_MEDIA_UNMOUNTED);
-//        mIntentFilter.addDataScheme("file");
-//        registerReceiver(mUsbReceiver, mIntentFilter);
+        mUsbReceiver = new USBReceiver();
+        IntentFilter intentFilter = new IntentFilter(Intent.ACTION_MEDIA_MOUNTED);
+        intentFilter.setPriority(1000);
+        intentFilter.addAction(Intent.ACTION_MEDIA_UNMOUNTED);
+        intentFilter.addAction(Intent.ACTION_MEDIA_REMOVED);
+        intentFilter.addAction(Intent.ACTION_MEDIA_SHARED);
+        intentFilter.addAction(Intent.ACTION_MEDIA_BAD_REMOVAL);
+        intentFilter.addAction(Intent.ACTION_MEDIA_SCANNER_STARTED);
+        intentFilter.addAction(Intent.ACTION_MEDIA_SCANNER_FINISHED);
+        intentFilter.addAction(Intent.ACTION_MEDIA_CHECKING);
+        intentFilter.addAction(Intent.ACTION_MEDIA_EJECT);
+        intentFilter.addAction(Intent.ACTION_MEDIA_NOFS);
+        intentFilter.addAction(Intent.ACTION_MEDIA_BUTTON);
+        intentFilter.addAction(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        intentFilter.addDataScheme("file");
+        registerReceiver(mUsbReceiver, intentFilter);
 //
 //        this.bleListenerReceiver = new BluetoothMonitorReceiver();
 //        IntentFilter intentFilter = new IntentFilter();
@@ -147,7 +154,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         viewPager = findViewById(R.id.viewpager);
         fragmentList = new ArrayList<>();
         fragmentList.add(new UsbFragment());
-        fragmentList.add(new BtFragment());
+        fragmentList.add(new BluetoothMainFragment());
         adapter = new MainActivityFragmentAdapter(getSupportFragmentManager(), fragmentList);
         viewPager.setAdapter(adapter);
         viewPager.addOnPageChangeListener(this);
@@ -243,9 +250,14 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        MainStateInfo mainStateInfo=new MainStateInfo();
+        mainStateInfo.isBtConnectChange=false;
+        mainStateInfo.setUsbState(0);
+        EventBus.getDefault().post(mainStateInfo);
         EventBus.getDefault().unregister(this);
 //        unregisterReceiver(this.bleListenerReceiver);
-//        unregisterReceiver(this.mUsbReceiver);
+        unregisterReceiver(this.mUsbReceiver);
+
     }
 
 }

@@ -19,13 +19,14 @@ public class USBReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
+        Log.d("zt","---USBReceiver--"+action);
         if (action.equals(Intent.ACTION_MEDIA_MOUNTED)) {
             String mountPath = intent.getData().getPath();
             if (!TextUtils.isEmpty(mountPath)) {
                 //读取到U盘路径再做其他业务逻辑
                 mainStateInfo.setUsbState(1);
                 mainStateInfo.isBtConnectChange=false;
-                EventBus.getDefault().post(mainStateInfo);
+//                EventBus.getDefault().post(mainStateInfo);
             }
         } else if (action.equals(Intent.ACTION_MEDIA_UNMOUNTED) ||
                 action.equals(Intent.ACTION_MEDIA_EJECT) || action.equals(ACTION_REMOVE)) {
@@ -50,10 +51,11 @@ public class USBReceiver extends BroadcastReceiver {
             Logger.d(TAG, "ACTION_MEDIA_SCANNER_FINISHED intent:" + intent.getData().toString());
             mainStateInfo.mScanState = MainStateInfo.SCAN_STATE_END;
             // SharedPreferencesManager.putInt(mAppContext, SharedPreferencesManager.KEY_SCAN_STATE,  MainStateInfo.SCAN_STATE_END);
-            mainStateInfo.isConnectStateChange = false;
-            mainStateInfo.isBtConnectChange=false;
+//            mainStateInfo.isConnectStateChange = false;
+//            mainStateInfo.isBtConnectChange=false;
             mainStateInfo.isScanStateChange = true;
             Log.d("zt","---扫描完毕--");
+            EventBus.getDefault().post(mainStateInfo);
         }
 
     }

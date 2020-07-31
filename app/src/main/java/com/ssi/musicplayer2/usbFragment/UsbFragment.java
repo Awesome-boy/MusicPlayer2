@@ -113,7 +113,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     private int curMusicId;
     private String curMusicPath;
     private DBManager dbManager;
-    private ProgressDialog progressDialog;
+//    private ProgressDialog progressDialog;
 
     private ImageView music_lyric;
     private ImageView music_dir;
@@ -125,6 +125,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     private TextView song_album;
     private TextView song_artist;
     private FrameLayout frameLayout;
+    private ProgressDialog progressDialog;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -142,6 +143,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     public void onDestroy() {
         super.onDestroy();
         EventBus.getDefault().unregister(this);
+        resetFragment();
     }
 
     @Nullable
@@ -166,6 +168,8 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         if (path != null && path.size() > 0) {
             showDialog(getActivity());
             startScanLocalMusic(path.get(0));
+        }else {
+            resetFragment();
         }
         Intent intent = new Intent(mContext, AudioPlayerService.class);
         mContext.bindService(intent, this, 0);
@@ -175,7 +179,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     public void onResume() {
         super.onResume();
         refreshState();
-        refreshItem();
+//        refreshItem();
     }
 
     private void refreshItem() {
@@ -227,30 +231,33 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
                         music_album.setClickable(true);
                     }
                 }else {
-                    if (mMediaController != null) {
-                        mMediaController.getTransportControls().pause();
-                        mMediaPlayerHelper.mMediaPlayer.reset();
-                        mMediaController = null;
-                    }
-                    music_lyric.setClickable(false);
-                    music_dir.setClickable(false);
-                    music_artist.setClickable(false);
-                    music_album.setClickable(false);
-                    music_lyric.setSelected(false);
-                    music_dir.setSelected(false);
-                    music_artist.setSelected(false);
-                    music_album.setSelected(false);
-                    song_title.setText("歌曲名称");
-                    song_order.setText("顺序");
-                    song_album.setText("专辑名称");
-                    song_artist.setText("歌手");
-                    seekBar.setProgress(0);
-                    frameLayout.setVisibility(View.GONE);
+                    resetFragment();
 
                 }
             }
         }
 
+    }
+
+    private void resetFragment() {
+        if (mMediaController != null) {
+            mMediaController.getTransportControls().pause();
+            mMediaPlayerHelper.mMediaPlayer.reset();
+        }
+        music_lyric.setClickable(false);
+        music_dir.setClickable(false);
+        music_artist.setClickable(false);
+        music_album.setClickable(false);
+        music_lyric.setSelected(false);
+        music_dir.setSelected(false);
+        music_artist.setSelected(false);
+        music_album.setSelected(false);
+        song_title.setText("歌曲名称");
+        song_order.setText("顺序");
+        song_album.setText("专辑名称");
+        song_artist.setText("歌手");
+        seekBar.setProgress(0);
+        frameLayout.setVisibility(View.GONE);
     }
 
     private void showDialog(Context context) {
@@ -276,7 +283,6 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
                     scanComplete();
                     break;
                 case Constant.SCAN_COMPLETE:
-                    initCurPlaying();
                     scanComplete();
                     scanData=true;
                     break;
@@ -303,19 +309,23 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         }
     }
 
-    private void initCurPlaying() {
-
-    }
-
 
     private void scanComplete() {
         if (progressDialog != null && progressDialog.isShowing()) {
             progressDialog.dismiss();
         }
-        if (musicInfoList != null) {
-            Logger.d("zt", "---扫描出的歌曲数：----" + musicInfoList.size());
+         musicInfoList=dbManager.getAllMusicFromMusicTable();
+        Logger.d("zt", "---扫描出的歌曲数：----" + musicInfoList.size());
+        if (musicInfoList != null&& musicInfoList.size()==0) {
+            Toast.makeText(mContext,"无音频文件",Toast.LENGTH_SHORT).show();
+        }else {
+            if(mMediaPlayerHelper!=null){
+                mMediaPlayerHelper.setPlayeData(musicInfoList);
+                mMediaPlayerHelper.setPlayID(0);
+            }
 
         }
+        refreshItem();
 
     }
 
@@ -326,7 +336,6 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
             public void run() {
                 super.run();
                 try {
-//                    querySong(path);
                     querySong1(path);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -383,8 +392,8 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
             }
 
             //扫描完成获取一下当前播放音乐及路径
-            curMusicId = MyMusicUtil.getIntShared(Constant.KEY_ID);
-            curMusicPath = dbManager.getMusicPath(curMusicId);
+//            curMusicId = MyMusicUtil.getIntShared(Constant.KEY_ID);
+//            curMusicPath = dbManager.getMusicPath(curMusicId);
 
             // 根据a-z进行排序源数据
             Collections.sort(musicInfoList);
@@ -404,53 +413,6 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         }
     }
 
-    private void querySong(String filepath) {
-        Cursor cursor = getContext().getContentResolver().query(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null,
-                MediaStore.Audio.Media.DATA + " like ?",
-                new String[]{filepath + "%"},
-                MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
-
-        if (cursor == null) return;
-
-        //id title singer data time image
-        for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
-            // 如果不是音乐
-            String isMusic = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.IS_MUSIC));
-            if (isMusic != null && isMusic.equals("")) continue;
-            String name = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
-            String singer = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
-            String album = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
-            String path = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
-            Log.d("zt", "------" + path + "----");
-            File file = new File(path);
-            String parentPath = file.getParentFile().getPath();
-
-            name = replaseUnKnowe(name);
-            singer = replaseUnKnowe(singer);
-            album = replaseUnKnowe(album);
-            path = replaseUnKnowe(path);
-
-            MusicInfo musicInfo = new MusicInfo();
-
-            musicInfo.setName(name);
-            musicInfo.setSinger(singer);
-            musicInfo.setAlbum(album);
-            musicInfo.setPath(path);
-            Log.e(TAG, "run: parentPath = " + parentPath);
-            musicInfo.setParentPath(parentPath);
-            musicInfo.setFirstLetter(ChineseToEnglish.StringToPinyinSpecial(name).toUpperCase().charAt(0) + "");
-            musicInfoList.add(musicInfo);
-        }
-        // 根据a-z进行排序源数据
-        Collections.sort(musicInfoList);
-        dbManager.updateAllMusic(musicInfoList);
-        //扫描完成
-        msg = new Message();
-        msg.what = Constant.SCAN_COMPLETE;
-        handler.sendMessage(msg);  //更新UI界面
-        cursor.close();
-    }
 
     public static String replaseUnKnowe(String oldStr) {
         try {
@@ -512,6 +474,9 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         switch (v.getId()) {
             case R.id.button_play:
                 //todo 播放或者暂停
+                if (mMediaController==null){
+                    return;
+                }
                 if (mMediaController.getPlaybackState().getState() == PlaybackStateCompat.STATE_PLAYING) {
                     mMediaController.getTransportControls().pause();
                 } else if (mMediaController.getPlaybackState().getState() == PlaybackStateCompat.STATE_PAUSED) {
@@ -524,12 +489,19 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
                 //todo 循环模式
                 break;
             case R.id.button_previous:
-                mMediaController.getTransportControls().skipToPrevious();
+
                 //todo 上一首
+                if(mMediaController!=null){
+                    mMediaController.getTransportControls().skipToPrevious();
+                }
+
                 break;
             case R.id.button_next:
-                mMediaController.getTransportControls().skipToNext();
                 //todo 下一首
+                if(mMediaController!=null){
+                    mMediaController.getTransportControls().skipToNext();
+                }
+
                 break;
             case R.id.music_lyric:
                 music_lyric.setSelected(true);
@@ -566,7 +538,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     //正确的做法
     private void switchFragment(Fragment targetFragment) {
         frameLayout.setVisibility(View.VISIBLE);
-        FragmentTransaction transaction = getChildFragmentManager().beginTransaction();
+        FragmentTransaction transaction = getFragmentManager().beginTransaction();
         if (!targetFragment.isAdded()) {
             transaction.add(R.id.muisc_list, targetFragment)
                     .commit();
