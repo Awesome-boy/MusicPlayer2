@@ -31,10 +31,11 @@ import com.ssi.musicplayer2.btFragment.BluetoothMainFragment;
 import com.ssi.musicplayer2.database.DBManager;
 import com.ssi.musicplayer2.manager.MainStateInfo;
 import com.ssi.musicplayer2.manager.MainStateInfoViewModel;
-import com.ssi.musicplayer2.receive.BluetoothMonitorReceiver;
-import com.ssi.musicplayer2.receive.USBReceiver;
 import com.ssi.musicplayer2.usbFragment.UsbFragment;
+import com.ssi.musicplayer2.utils.Logger;
 import com.ssi.musicplayer2.utils.SPUtils;
+import com.ssi.musicplayer2.view.USBStatusDialog;
+
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -43,7 +44,7 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements ViewPager.OnPageChangeListener, View.OnClickListener {
+public class MainActivity extends AppCompatActivity implements ViewPager.OnPageChangeListener, View.OnClickListener, UsbFragment.ChangFragmentListner, Observer<Object> {
 
     private TextView tv_usb_title;
     private TextView tv_bt_title;
@@ -65,53 +66,26 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                     Manifest.permission.RECORD_AUDIO,
                     Manifest.permission.MODIFY_AUDIO_SETTINGS
             };
-    private BluetoothMonitorReceiver bleListenerReceiver;
-    private USBReceiver mUsbReceiver;
-    private IntentFilter mIntentFilter;
     private TableIndexView mTableIndexView;
+    private boolean usbstate;
+    private boolean btstate;
+    private MainStateInfoViewModel mMainStateInfoViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initView();
-        registerListener();
         if (isNeedPermission()) {
             requestPermissions(permissionGroup, 1);
         }
-
-    }
-
-    private void registerListener() {
+        mMainStateInfoViewModel = MainStateInfoViewModel.getInstance();
+        mMainStateInfoViewModel.addMainStateInfoListener(this, this);
+        mMainStateInfoViewModel.addScanStateListener(this, this);
         EventBus.getDefault().register(this);
-        // 初始化广播
-        mUsbReceiver = new USBReceiver();
-        IntentFilter intentFilter = new IntentFilter(Intent.ACTION_MEDIA_MOUNTED);
-        intentFilter.setPriority(1000);
-        intentFilter.addAction(Intent.ACTION_MEDIA_UNMOUNTED);
-        intentFilter.addAction(Intent.ACTION_MEDIA_REMOVED);
-        intentFilter.addAction(Intent.ACTION_MEDIA_SHARED);
-        intentFilter.addAction(Intent.ACTION_MEDIA_BAD_REMOVAL);
-        intentFilter.addAction(Intent.ACTION_MEDIA_SCANNER_STARTED);
-        intentFilter.addAction(Intent.ACTION_MEDIA_SCANNER_FINISHED);
-        intentFilter.addAction(Intent.ACTION_MEDIA_CHECKING);
-        intentFilter.addAction(Intent.ACTION_MEDIA_EJECT);
-        intentFilter.addAction(Intent.ACTION_MEDIA_NOFS);
-        intentFilter.addAction(Intent.ACTION_MEDIA_BUTTON);
-        intentFilter.addAction(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        intentFilter.addDataScheme("file");
-        registerReceiver(mUsbReceiver, intentFilter);
-//
-//        this.bleListenerReceiver = new BluetoothMonitorReceiver();
-//        IntentFilter intentFilter = new IntentFilter();
-//        // 监视蓝牙关闭和打开的状态
-//        intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
-//        // 监视蓝牙设备与APP连接的状态
-//        intentFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-//        intentFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
-//        // 注册广播
-//        registerReceiver(this.bleListenerReceiver, intentFilter);
+        switchState(mMainStateInfoViewModel.getMainStateInfo());
     }
+
 
     private boolean isNeedPermission() {
         boolean isGet = false;
@@ -127,9 +101,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     @Override
     protected void onResume() {
         super.onResume();
-        boolean usbstate=SPUtils.getInstance(this).getBoolean("usb",false);
-        boolean btstate=SPUtils.getInstance(this).getBoolean("bt",false);
-        changeFragment(usbstate,btstate);
+
+
     }
 
     @Override
@@ -205,39 +178,46 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                 moveTaskToBack(true);
                 break;
             case R.id.usb_pager_title:
-                viewPager.setCurrentItem(0,true);
+                viewPager.setCurrentItem(0, true);
                 break;
             case R.id.bt_pager_title:
-                viewPager.setCurrentItem(1,true);
+                viewPager.setCurrentItem(1, true);
                 break;
         }
-    }
-
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onMessage(MainStateInfo mainStateInfo) {
-        switchState(mainStateInfo);
     }
 
     private void switchState(MainStateInfo mainStateInfo) {
         if (mainStateInfo == null) {
             return;
         }
-        if (mainStateInfo.isBtConnectChange) {
-            btConnect = mainStateInfo.mBtState == 1;
-            SPUtils.getInstance(this).save("bt",btConnect);
-        } else {
-            usbConnect = mainStateInfo.mUsbState == 1;
-            SPUtils.getInstance(this).save("usb",usbConnect);
+        if (mainStateInfo.mConnectedState == 0) {
+            btstate = false;
+            usbstate = false;
+        } else if (mainStateInfo.mConnectedState == 1) {
+            btstate = false;
+            usbstate = true;
+        } else if (mainStateInfo.mConnectedState == 2) {
+            btstate = true;
+            usbstate = false;
+        } else if (mainStateInfo.mConnectedState == 3) {
+            btstate = true;
+            usbstate = true;
         }
-        boolean usbstate=SPUtils.getInstance(this).getBoolean("usb",false);
-        boolean btstate=SPUtils.getInstance(this).getBoolean("bt",false);
-        changeFragment(usbstate,btstate);
-        Log.d("zt","usb连接状态-----"+usbstate+"--蓝牙连接状态---"+btstate);
+        if (!btstate){
+         boolean lastBtState=SPUtils.getInstance(this).getBoolean("bt",false);
+         if (lastBtState){
+             USBStatusDialog dialog = USBStatusDialog.getInstance(this, getString(R.string.bt_disconnect));
+             dialog.show();
+         }
+        }
+        SPUtils.getInstance(this).save("bt",btstate);
+        changeFragment(usbstate, btstate);
+        EventBus.getDefault().post(mainStateInfo);
+        Log.d("zt", "usb连接状态-----" + usbstate + "--蓝牙连接状态---" + btstate);
 
     }
 
-    private void changeFragment(boolean usb,boolean bluetooth) {
+    private void changeFragment(boolean usb, boolean bluetooth) {
         if (!usb) {
             DBManager.getInstance(this).deleteAllTable();
         }
@@ -246,23 +226,44 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         } else if ((usb && !bluetooth) || (bluetooth && usb)) {
             viewPager.setCurrentItem(0, true);
         } else if (!bluetooth && !usb) {
-            Toast.makeText(this, "请插入usb设备", Toast.LENGTH_SHORT).show();
-            moveTaskToBack(true);
+            USBStatusDialog dialog = USBStatusDialog.getInstance(this, getString(R.string.tips_no_usb));
+            dialog.show();
+            finish();
         }
+
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessage(Object o) {
 
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        MainStateInfo mainStateInfo=new MainStateInfo();
-        mainStateInfo.isBtConnectChange=false;
-        mainStateInfo.setUsbState(0);
-        EventBus.getDefault().post(mainStateInfo);
+        if (mMainStateInfoViewModel != null) {
+            mMainStateInfoViewModel.removeMainStateInfoListener(this);
+            mMainStateInfoViewModel.removeScanStateListener(this);
+            mMainStateInfoViewModel = null;
+        }
+        if (viewPager != null) {
+            viewPager.removeOnPageChangeListener(this);
+            viewPager.clearOnPageChangeListeners();
+            viewPager = null;
+        }
         EventBus.getDefault().unregister(this);
-//        unregisterReceiver(this.bleListenerReceiver);
-        unregisterReceiver(this.mUsbReceiver);
-
     }
 
+    @Override
+    public void changeFragment(int position) {
+        viewPager.setCurrentItem(1, true);
+    }
+
+    @Override
+    public void onChanged(Object o) {
+        if (o instanceof MainStateInfo) {
+            MainStateInfo mainStateInfo = (MainStateInfo) o;
+            switchState(mainStateInfo);
+        }
+    }
 }

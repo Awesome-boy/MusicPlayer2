@@ -238,12 +238,15 @@ public class MediaPlayerHelper implements
 
     }
 
+
+
     //缓冲更新
     @Override
     public void onBufferingUpdate(MediaPlayer mediaPlayer, int percent) {
         if (playerUpdateListener != null)
             playerUpdateListener.onBufferingUpdate(mediaPlayer, percent);
     }
+
 
     public void destoryService() {
         if (mMediaPlayer != null) {

@@ -261,6 +261,7 @@
             android:layout_width="300dp"
             android:layout_height="0dp"
             android:scrollbars="vertical"
+            android:visibility="gone"
             android:scrollbarThumbVertical="@drawable/scrollbar"
             app:layout_constraintStart_toEndOf="@id/content_view"
             app:layout_constraintEnd_toEndOf="parent"

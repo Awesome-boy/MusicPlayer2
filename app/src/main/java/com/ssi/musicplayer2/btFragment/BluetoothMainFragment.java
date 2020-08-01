@@ -79,7 +79,7 @@ public class BluetoothMainFragment extends SubFragment implements BluetoothConne
         if (mFm == null) {
             mFm = activity.getSupportFragmentManager();
         }
-        if (!SPUtils.getInstance(getContext()).getBoolean("bt",false)) {
+        if (BluetoothConnectionHelper.isConnectedToOtherDevice() == BluetoothAdapter.STATE_DISCONNECTED) {
             if (mBTConnectionFragment == null) {
                 mBTConnectionFragment = new BTConnectionFragment();
             }

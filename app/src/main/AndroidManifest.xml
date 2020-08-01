@@ -46,37 +46,75 @@
         <service android:name=".service.AudioPlayerService"
             android:enabled="true"
             android:exported="true"/>
-        <receiver android:name=".receive.USBReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MEDIA_SCANNER_STARTED"/>
-                <action android:name="android.intent.action.MEDIA_SCANNER_FINISHED"/>
-                <action android:name="android.intent.action.MEDIA_CHECKING"/>
-                <action android:name="android.intent.action.MEDIA_SHARED"/>
-                <action android:name="android.intent.action.MEDIA_BAD_REMOVAL"/>
-                <action android:name="android.intent.action.MEDIA_EJECT"/>
-                <action android:name="android.intent.action.MEDIA_NOFS"/>
-                <action android:name="android.intent.action.MEDIA_BUTTON"/>
-                <action android:name="android.intent.action.MEDIA_SCANNER_SCAN_FILE"/>
-                <action android:name="android.intent.action.MEDIA_UNMOUNTED" />
-                <action android:name="android.intent.action.MEDIA_MOUNTED" />
-                <action android:name="android.intent.action.MEDIA_REMOVED"/>
-                <data android:scheme="file"/>
-            </intent-filter>
-        </receiver>
-        <receiver android:name=".receive.BluetoothMonitorReceiver"
-            android:exported="true">
-        <intent-filter>
-            <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
-            <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
-            <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
-            <action android:name="android.btopp.intent.action.OPEN_RECEIVED_FILES" />
-        </intent-filter>
-        </receiver>
+<!--        <receiver android:name=".receive.USBReceiver"-->
+<!--            android:exported="true">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.MEDIA_SCANNER_STARTED"/>-->
+<!--                <action android:name="android.intent.action.MEDIA_SCANNER_FINISHED"/>-->
+<!--                <action android:name="android.intent.action.MEDIA_CHECKING"/>-->
+<!--                <action android:name="android.intent.action.MEDIA_SHARED"/>-->
+<!--                <action android:name="android.intent.action.MEDIA_BAD_REMOVAL"/>-->
+<!--                <action android:name="android.intent.action.MEDIA_EJECT"/>-->
+<!--                <action android:name="android.intent.action.MEDIA_NOFS"/>-->
+<!--                <action android:name="android.intent.action.MEDIA_BUTTON"/>-->
+<!--                <action android:name="android.intent.action.MEDIA_SCANNER_SCAN_FILE"/>-->
+<!--                <action android:name="android.intent.action.MEDIA_UNMOUNTED" />-->
+<!--                <action android:name="android.intent.action.MEDIA_MOUNTED" />-->
+<!--                <action android:name="android.intent.action.MEDIA_REMOVED"/>-->
+<!--                <data android:scheme="file"/>-->
+<!--            </intent-filter>-->
+<!--        </receiver>-->
+<!--        <receiver android:name=".receive.BluetoothMonitorReceiver"-->
+<!--            android:exported="true">-->
+<!--        <intent-filter>-->
+<!--            <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />-->
+<!--            <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />-->
+<!--            <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />-->
+<!--            <action android:name="android.btopp.intent.action.OPEN_RECEIVED_FILES" />-->
+<!--        </intent-filter>-->
+<!--        </receiver>-->
 
         <service android:name=".btFragment.service.BluetoothMusicService"
             android:enabled="true"
             android:exported="true"/>
+
+        <receiver
+            android:name=".receive.BluetoothMusicReceiver"
+            android:exported="true"
+            >
+            <intent-filter>
+                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
+                <action android:name="android.btopp.intent.action.OPEN_RECEIVED_FILES" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".receive.StaticStateReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_MOUNTED" />
+                <data android:scheme="file" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_UNMOUNTED" />
+                <data android:scheme="file" />
+            </intent-filter>
+        </receiver>
+
+        <service android:name=".manager.MediaService"
+            android:enabled="true"
+            android:exported="true">
+
+        </service>
+        <service android:name=".manager.MainIntentService"
+            android:enabled="true"
+            android:exported="true">
+        </service>
+
     </application>
 
 </manifest>

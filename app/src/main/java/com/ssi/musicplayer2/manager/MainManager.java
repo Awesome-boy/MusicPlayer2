@@ -148,11 +148,11 @@ public class MainManager extends BaseManager implements Observer<Object> {
                 Logger.w(TAG, "handleIntent return for usb type error");
                 return;
             }
-
             mMainStateInfo.isConnectStateChange = true;
             mMainStateInfo.isBtConnectChange=false;
             mMainStateInfo.UsbCountSub();
             mMainStateInfo.setUsbState(0);
+            mMainStateInfoViewModel.postMainStateInfo(mMainStateInfo);
         }else if(BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
             mMainStateInfo.setBtState(1);
             mMainStateInfo.isConnectStateChange = true;

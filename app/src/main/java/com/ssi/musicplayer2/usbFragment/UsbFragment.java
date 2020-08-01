@@ -1,7 +1,7 @@
 package com.ssi.musicplayer2.usbFragment;
 
 import android.animation.ValueAnimator;
-import android.app.ProgressDialog;
+import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -20,6 +20,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.LinearInterpolator;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -34,9 +35,12 @@ import androidx.constraintlayout.widget.Placeholder;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
+import com.dfssi.android.d760ui.TipsDialog;
 import com.ssi.musicplayer2.MainActivity;
 import com.ssi.musicplayer2.MyApplication;
 import com.ssi.musicplayer2.R;
+import com.ssi.musicplayer2.btFragment.SubFragment;
+import com.ssi.musicplayer2.btFragment.client.BluetoothConnectionHelper;
 import com.ssi.musicplayer2.database.DBManager;
 import com.ssi.musicplayer2.javabean.MusicInfo;
 import com.ssi.musicplayer2.manager.MainStateInfo;
@@ -51,6 +55,7 @@ import com.ssi.musicplayer2.utils.SPUtils;
 import com.ssi.musicplayer2.utils.Utils;
 import com.ssi.musicplayer2.view.LyricView;
 import com.ssi.musicplayer2.view.MediaSeekBar;
+import com.ssi.musicplayer2.view.USBStatusDialog;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -63,7 +68,7 @@ import java.util.Collections;
 import java.util.List;
 
 
-public class UsbFragment extends Fragment implements View.OnClickListener, SeekBar.OnSeekBarChangeListener, ServiceConnection, MediaPlayerHelper.MediaPlayerUpdateCallBack, LyricView.OnPlayerClickListener {
+public class UsbFragment extends SubFragment implements View.OnClickListener, SeekBar.OnSeekBarChangeListener, ServiceConnection, MediaPlayerHelper.MediaPlayerUpdateCallBack, LyricView.OnPlayerClickListener, ValueAnimator.AnimatorUpdateListener {
 
     private static final String TAG = UsbFragment.class.getSimpleName();
     private View rootView;
@@ -107,12 +112,13 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
                 Logger.i(TAG, "onMetadataChanged return for null");
                 return;
             }
-            int currentId=MyMusicUtil.getIntShared(Constant.KEY_ID)-1;
-            String path=musicInfoList.get(currentId).getPath();
+            int currentId = MyMusicUtil.getIntShared(Constant.KEY_ID) - 1;
+            String path = dbManager.getAllMusicFromMusicTable().get(currentId).getPath();
             File lyricFile = new File(path.substring(0, path.lastIndexOf(".")) + ".lrc");
             if (lyricFile.exists()) {
                 mLyricView.reset();
                 mLyricView.setLyricFile(lyricFile, Utils.getCharset(lyricFile.getName()));
+
             } else {
                 mLyricView.reset();
             }
@@ -136,15 +142,18 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     private TextView song_album;
     private TextView song_artist;
     private FrameLayout frameLayout;
-    private ProgressDialog progressDialog;
     private View holdView;
     private LyricView mLyricView;
-    private Group mLyricGroup ;
+    private Group mLyricGroup;
     private Placeholder mHolderSongAlbum;
     private Placeholder mHolderSongTitle;
     private Placeholder mHolderSongOrder;
     private Placeholder mHolderSongArtist;
     private ValueAnimator mProgressAnimator = null;
+    private int musicTime;
+    private TipsDialog dialog;
+    private MainStateInfo mainStateInfo;
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -155,6 +164,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         mContext = context;
+        changFragmentListner = (ChangFragmentListner) context;
     }
 
     @Override
@@ -187,13 +197,6 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         initView(view);
-        final List<String> path = Utils.getUSBPaths(mContext);
-        if (path != null && path.size() > 0) {
-            showDialog(getActivity());
-            startScanLocalMusic(path.get(0));
-        }else {
-            resetFragment();
-        }
         Intent intent = new Intent(mContext, AudioPlayerService.class);
         mContext.bindService(intent, this, 0);
     }
@@ -203,11 +206,11 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         super.onResume();
         refreshState();
 //        refreshItem();
-        if (currentFragment!=null||frameLayout.isShown()){
+        if (music_dir.isSelected() || music_album.isSelected() || music_artist.isSelected() || music_lyric.isSelected()) {
             mLyricGroup.setVisibility(View.VISIBLE);
             holdView.setVisibility(View.VISIBLE);
             switchLyicState(View.VISIBLE);
-        }else {
+        } else {
             mLyricGroup.setVisibility(View.GONE);
             switchLyicState(View.GONE);
         }
@@ -231,10 +234,9 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     }
 
 
-
     private void refreshItem() {
         if (mMediaPlayerHelper != null && musicInfoList != null && musicInfoList.size() > 0) {
-            if (SPUtils.getInstance(mContext).getBoolean("usb",false) &&scanData){
+            if (SPUtils.getInstance(mContext).getBoolean("usb", false) && scanData) {
                 int posId = mMediaPlayerHelper.getPos();
                 String path = musicInfoList.get(posId).getPath();
                 String name = musicInfoList.get(posId).getName();
@@ -268,25 +270,36 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
                 mMediaPlayerHelper.setPlayID(pos);
             }
         } else if (o instanceof MainStateInfo) {
-            MainStateInfo mainStateInfo = (MainStateInfo) o;
-            if (!mainStateInfo.isBtConnectChange) {
-                if (mainStateInfo.mUsbState == 1) {
+            mainStateInfo = (MainStateInfo) o;
+            if (mainStateInfo.mConnectedState == 1 || mainStateInfo.mConnectedState == 3) {
+                if (mainStateInfo.mScanState == MainStateInfo.SCAN_STATE_END) {
                     final List<String> path = Utils.getUSBPaths(mContext);
                     if (path != null && path.size() > 0) {
-                        showDialog(mContext);
+                        if (mainStateInfo.isBtConnectChange){
+                            return;
+                        }
+                        showDialog(getString(R.string.text_scaning));
                         startScanLocalMusic(path.get(0));
                         music_lyric.setClickable(true);
                         music_dir.setClickable(true);
                         music_artist.setClickable(true);
                         music_album.setClickable(true);
                     }
-                }else {
-                    resetFragment();
-
                 }
+
+            } else {
+                resetFragment();
             }
         }
 
+
+    }
+
+    private void showDialog(String msg) {
+        if (dialog == null) {
+            dialog = TipsDialog.getInstance(mContext, msg);
+        }
+        dialog.show();
     }
 
     private void resetFragment() {
@@ -310,33 +323,25 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         frameLayout.setVisibility(View.GONE);
         holdView.setVisibility(View.GONE);
         mLyricGroup.setVisibility(View.GONE);
+        music_lyric.setVisibility(View.GONE);
     }
 
-    private void showDialog(Context context) {
-        progressDialog = new ProgressDialog(context);
-        progressDialog.setMessage("音乐搜索中...");
-        progressDialog.setIndeterminate(true);// 是否形成一个加载动画  true表示不明确加载进度形成转圈动画  false 表示明确加载进度
-        progressDialog.setCancelable(false);//点击返回键或者dialog四周是否关闭dialog  true表示可以关闭 false表示不可关闭
-        progressDialog.show();
-    }
     private boolean scanData;
     private Handler handler = new Handler() {
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             switch (msg.what) {
                 case Constant.SCAN_NO_MUSIC:
-                    scanData=false;
-                    Toast.makeText(MyApplication.getContext(), "本地没有歌曲，快去下载吧", Toast.LENGTH_SHORT).show();
+                    scanData = false;
                     scanComplete();
                     break;
                 case Constant.SCAN_ERROR:
-                    scanData=false;
-                    Toast.makeText(getActivity(), "数据库错误", Toast.LENGTH_LONG).show();
+                    scanData = false;
                     scanComplete();
                     break;
                 case Constant.SCAN_COMPLETE:
                     scanComplete();
-                    scanData=true;
+                    scanData = true;
                     break;
             }
         }
@@ -355,17 +360,36 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         }
     }
 
+    public interface ChangFragmentListner {
+        void changeFragment(int position);
+    }
+
+    private ChangFragmentListner changFragmentListner;
 
     private void scanComplete() {
-        if (progressDialog != null && progressDialog.isShowing()) {
-            progressDialog.dismiss();
+        if (dialog != null && dialog.isShowing()) {
+            dialog.dismiss();
         }
-         musicInfoList=dbManager.getAllMusicFromMusicTable();
+        musicInfoList = dbManager.getAllMusicFromMusicTable();
         Logger.d("zt", "---扫描出的歌曲数：----" + musicInfoList.size());
-        if (musicInfoList != null&& musicInfoList.size()==0) {
-            Toast.makeText(mContext,"无音频文件",Toast.LENGTH_SHORT).show();
-        }else {
-            if(mMediaPlayerHelper!=null){
+        if (musicInfoList != null && musicInfoList.size() == 0) {
+            if (dialog!=null && dialog.isShowing()){
+                dialog.dismiss();
+            }
+            USBStatusDialog.getInstance(mContext, getString(R.string.no_music_usb)).show();
+            if (mainStateInfo!=null) {
+                if (mainStateInfo.mConnectedState==MainStateInfo.BT_NO_AND_USB_NO||mainStateInfo.mConnectedState==MainStateInfo.BT_NO_AND_USB_YES){
+                    finishThisFragment();
+                    getActivity().finish();
+                }
+
+            } else {
+                if (changFragmentListner != null) {
+                    changFragmentListner.changeFragment(1);
+                }
+            }
+        } else {
+            if (mMediaPlayerHelper != null) {
                 mMediaPlayerHelper.setPlayeData(musicInfoList);
                 mMediaPlayerHelper.setPlayID(0);
             }
@@ -487,7 +511,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
 
         btn_model = view.findViewById(R.id.button_mix_play);
         btn_model.setOnClickListener(this);
-        int modelIndex=SPUtils.getInstance(mContext).getInt("model",0);
+        int modelIndex = SPUtils.getInstance(mContext).getInt("model", 0);
         refreshModelBtn(modelIndex);
         btn_previous = view.findViewById(R.id.button_previous);
         btn_previous.setOnClickListener(this);
@@ -530,7 +554,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         switch (v.getId()) {
             case R.id.button_play:
                 //todo 播放或者暂停
-                if (mMediaController==null){
+                if (mMediaController == null) {
                     return;
                 }
                 if (mMediaController.getPlaybackState().getState() == PlaybackStateCompat.STATE_PLAYING) {
@@ -543,15 +567,15 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
                 break;
             case R.id.button_mix_play:
                 //todo 循环模式
-                int playmoedl=SPUtils.getInstance(mContext).getInt("model",0);
-                if (playmoedl==0){
-                    SPUtils.getInstance(mContext).save("model",1);
+                int playmoedl = SPUtils.getInstance(mContext).getInt("model", 0);
+                if (playmoedl == 0) {
+                    SPUtils.getInstance(mContext).save("model", 1);
                     refreshModelBtn(1);
-                }else if (playmoedl==1){
-                    SPUtils.getInstance(mContext).save("model",2);
+                } else if (playmoedl == 1) {
+                    SPUtils.getInstance(mContext).save("model", 2);
                     refreshModelBtn(2);
-                }else if (playmoedl==2){
-                    SPUtils.getInstance(mContext).save("model",0);
+                } else if (playmoedl == 2) {
+                    SPUtils.getInstance(mContext).save("model", 0);
                     refreshModelBtn(0);
                 }
 
@@ -559,14 +583,14 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
             case R.id.button_previous:
 
                 //todo 上一首
-                if(mMediaController!=null){
+                if (mMediaController != null) {
                     mMediaController.getTransportControls().skipToPrevious();
                 }
 
                 break;
             case R.id.button_next:
                 //todo 下一首
-                if(mMediaController!=null){
+                if (mMediaController != null) {
                     mMediaController.getTransportControls().skipToNext();
                 }
 
@@ -604,7 +628,7 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     }
 
     private void refreshModelBtn(int index) {
-        switch (index){
+        switch (index) {
             case 0:
                 //全部循环
                 btn_model.setBackgroundResource(R.drawable.img_loop_play);
@@ -643,7 +667,21 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
         //更新时实播放进度
         song_progress_time.setText(turnTime(progress));
-        Log.d("zt","---onProgressChanged -"+progress);
+        final int maxV = musicTime;
+        final int timeToEnd = (int) ((maxV - progress) * 1000 / 1);
+        Logger.d("zt", "onPlaybackStateChanged progress:" + progress + ",max:" + maxV + ",");
+        if (timeToEnd <= 0) {
+            Logger.e(TAG, "onPlaybackStateChanged return for timeToEnd is negative");
+            return;
+        }
+        if (mProgressAnimator == null) {
+
+            mProgressAnimator = ValueAnimator.ofInt(progress * 1000, maxV * 1000)
+                    .setDuration(timeToEnd);
+            mProgressAnimator.setInterpolator(new LinearInterpolator());
+            mProgressAnimator.addUpdateListener(UsbFragment.this);
+            mProgressAnimator.start();
+        }
     }
 
     /**
@@ -675,16 +713,18 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
         }
         return (d > 0 ? d > 9 ? d : "0" + d : "00") + ":" + (s > 9 ? s : "0" + s);
     }
+
     private boolean mIsTracking = false;
+
     @Override
     public void onStartTrackingTouch(SeekBar seekBar) {
-        mIsTracking=true;
+        mIsTracking = true;
 
     }
 
     @Override
     public void onStopTrackingTouch(SeekBar seekBar) {
-        mIsTracking=false;
+        mIsTracking = false;
         //更新拖动进度
         mMediaPlayerHelper.getMediaPlayer().seekTo(
                 seekBar.getProgress() * mMediaPlayerHelper.getMediaPlayer().getDuration()
@@ -725,16 +765,15 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     @Override
     public void onCompletion(MediaPlayer mediaPlayer) {
         //自动播放下一首
-        int playModel=SPUtils.getInstance(mContext).getInt("model",0);
-        if (playModel==0){
+        int playModel = SPUtils.getInstance(mContext).getInt("model", 0);
+        if (playModel == 0) {
             mMediaController.getTransportControls().skipToNext();
-        }else if (playModel==1){
-            int currentId=MyMusicUtil.getIntShared(Constant.KEY_ID);
-            Log.d("zt","---currentId--"+currentId);
-            mMediaPlayerHelper.setPlayID(currentId-1);
-        }else {
+        } else if (playModel == 1) {
+            int currentId = MyMusicUtil.getIntShared(Constant.KEY_ID);
+            mMediaPlayerHelper.setPlayID(currentId - 1);
+        } else {
             SecureRandom sr = new SecureRandom();
-            int nextId=sr.nextInt(musicInfoList.size());
+            int nextId = sr.nextInt(musicInfoList.size());
             mMediaPlayerHelper.setPlayID(nextId);
         }
 
@@ -748,10 +787,15 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
 
     @Override
     public void onPrepared(MediaPlayer mediaPlayer) {
-        int musicTime = mediaPlayer.getDuration() / 1000;
+        musicTime = mediaPlayer.getDuration() / 1000;
         int minute = musicTime / 60;
         int second = musicTime % 60;
         song_duration_time.setText(minute + ":" + (second > 9 ? second : "0" + second));
+        if (mProgressAnimator != null) {
+            mProgressAnimator.removeUpdateListener(UsbFragment.this);
+            mProgressAnimator.cancel();
+            mProgressAnimator = null;
+        }
     }
 
     @Override
@@ -762,5 +806,14 @@ public class UsbFragment extends Fragment implements View.OnClickListener, SeekB
     }
 
 
-
+    @Override
+    public void onAnimationUpdate(ValueAnimator animation) {
+        if (mLyricView != null) {
+            mLyricView.setCurrentTimeMillis((int) animation.getAnimatedValue());
+        }
+        if (mIsTracking && mProgressAnimator != null) {
+            animation.cancel();
+            return;
+        }
+    }
 }
