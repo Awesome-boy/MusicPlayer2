@@ -39,7 +39,7 @@ import java.util.TimerTask;
  */
 
 public class MediaPlayerHelper implements
-        MediaPlayer.OnPreparedListener, MediaPlayer.OnBufferingUpdateListener {
+        MediaPlayer.OnPreparedListener, MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnErrorListener {
 
     public MediaPlayer mMediaPlayer;
     private PlaybackStateCompat mPlaybackState;
@@ -118,7 +118,6 @@ public class MediaPlayerHelper implements
                         mMediaSession.setMetadata(getMusicEntity(entity.getName(),
                                 entity.getSinger(), entity.getAlbum()));
                         MyMusicUtil.setShared(Constant.KEY_ID,list_data.get(last_index).getId());
-                        Log.d("zt","准备播放的歌曲"+list_data.get(last_index).getId()+"---"+last_index);
                         break;
                 }
             } catch (IOException e) {
@@ -214,6 +213,7 @@ public class MediaPlayerHelper implements
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         mMediaPlayer.setOnPreparedListener(this);
         mMediaPlayer.setOnBufferingUpdateListener(this);
+        mMediaPlayer.setOnErrorListener(this);
 
         // 初始化MediaController
         try {
@@ -362,12 +362,22 @@ public class MediaPlayerHelper implements
         return this.last_index;
     }
 
+    @Override
+    public boolean onError(MediaPlayer mp, int what, int extra) {
+        if (playerUpdateListener!=null){
+            playerUpdateListener.onPlayError(mp);
+        }
+        return true;
+    }
+
     public interface MediaPlayerUpdateCallBack {
         void onCompletion(MediaPlayer mediaPlayer);
 
         void onBufferingUpdate(MediaPlayer mediaPlayer, int percent);
 
         void onPrepared(MediaPlayer mediaPlayer);
+
+        void onPlayError(MediaPlayer mediaPlayer);
     }
 
 }

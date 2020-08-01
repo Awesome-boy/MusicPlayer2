@@ -135,7 +135,6 @@ public class FolderFragment extends Fragment {
         folderInfoList.clear();
         dbList = MyMusicUtil.groupByFolder((ArrayList) dbManager.getAllMusicFromMusicTable());
         folderInfoList.addAll(dbList);
-        Log.d("zt", "onResume: folderInfoList.size() = "+folderInfoList.size());
         adapter.notifyDataSetChanged();
     }
 }

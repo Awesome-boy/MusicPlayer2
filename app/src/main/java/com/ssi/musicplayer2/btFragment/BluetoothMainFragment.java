@@ -2,6 +2,7 @@ package com.ssi.musicplayer2.btFragment;
 
 import android.bluetooth.BluetoothAdapter;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -80,11 +81,13 @@ public class BluetoothMainFragment extends SubFragment implements BluetoothConne
             mFm = activity.getSupportFragmentManager();
         }
         if (BluetoothConnectionHelper.isConnectedToOtherDevice() == BluetoothAdapter.STATE_DISCONNECTED) {
+            Log.d("zt","-- 蓝牙未连接的fragment----");
             if (mBTConnectionFragment == null) {
                 mBTConnectionFragment = new BTConnectionFragment();
             }
             mFm.beginTransaction().replace(R.id.fragment_container, mBTConnectionFragment).commit();
         } else {
+            Log.d("zt","-- 蓝牙连接的fragment----");
             if (mBluetoothMusicMainFragment == null) {
                 mBluetoothMusicMainFragment = new BluetoothMusicMainFragment();
             }

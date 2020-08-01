@@ -45,7 +45,7 @@ public class BluetoothMusicMainFragment extends Fragment
                     View.OnClickListener, AppCompatSeekBar.OnSeekBarChangeListener,
                     ValueAnimator.AnimatorUpdateListener {
 
-    private static final ComponentName BT_MUSIC_SERVICE = new ComponentName("com.ssi.musicplayer", "com.ssi.musicplayer.bluetoothmusic.services.BluetoothMusicService");
+    private static final ComponentName BT_MUSIC_SERVICE = new ComponentName("com.ssi.musicplayer2", "com.ssi.musicplayer2.btFragment.service.BluetoothMusicService");
 
     private static final String TAG = BluetoothMusicMainFragment.class.getSimpleName();
 

@@ -440,7 +440,6 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
                 String singer = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
                 String album = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
                 String path = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
-                Log.d("zt", "------" + path + "----");
                 File file = new File(path);
                 String parentPath = file.getParentFile().getPath();
 
@@ -670,7 +669,6 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
         song_progress_time.setText(turnTime(progress));
         final int maxV = musicTime;
         final int timeToEnd = (int) ((maxV - progress) * 1000 / 1);
-        Logger.d("zt", "onPlaybackStateChanged progress:" + progress + ",max:" + maxV + ",");
         if (timeToEnd <= 0) {
             Logger.e(TAG, "onPlaybackStateChanged return for timeToEnd is negative");
             return;
@@ -796,6 +794,13 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
             mProgressAnimator.removeUpdateListener(UsbFragment.this);
             mProgressAnimator.cancel();
             mProgressAnimator = null;
+        }
+    }
+
+    @Override
+    public void onPlayError(MediaPlayer mediaPlayer) {
+        if (mMediaController != null) {
+            mMediaController.getTransportControls().skipToNext();
         }
     }
 

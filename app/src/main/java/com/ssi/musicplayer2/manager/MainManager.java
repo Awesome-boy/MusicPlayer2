@@ -130,7 +130,6 @@ public class MainManager extends BaseManager implements Observer<Object> {
             Logger.d(TAG, "ACTION_MEDIA_MOUNTED--------" + action);
 
             List<String> sdDir= Utils.getUSBPaths(mAppContext);
-            Log.d("zt","usb----"+sdDir.size());
             if (sdDir!=null&&sdDir.size()>0){
                 mMainStateInfo.UsbCountAdd();
                 mMainStateInfo.setUsbState(1);

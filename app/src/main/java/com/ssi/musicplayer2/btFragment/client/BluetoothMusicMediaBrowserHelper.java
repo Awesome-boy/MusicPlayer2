@@ -81,7 +81,6 @@ public class BluetoothMusicMediaBrowserHelper implements DefaultLifecycleObserve
         mMediaControllerCallback = new MediaControllerCallback();
         mMediaBrowserSubscriptionCallback = new MediaBrowserSubscriptionCallback();
         Logger.w(TAG, "init mBtServiceComponentName:" + mBtServiceComponentName.toString());
-        Log.d("zt", "mMediaController---init--"+String.valueOf(mMediaController==null));
     }
 
 
@@ -157,7 +156,6 @@ public class BluetoothMusicMediaBrowserHelper implements DefaultLifecycleObserve
        
         @Override
         public void onConnected() {
-            Logger.w("zt", "MediaBrowserConnectionCallback onConnected");
             super.onConnected();
 
             try {
@@ -169,9 +167,7 @@ public class BluetoothMusicMediaBrowserHelper implements DefaultLifecycleObserve
                 mMediaControllerCallback.onPlaybackStateChanged(mMediaController.getPlaybackState());
                 //mMediaBrowser.subscribe(mMediaBrowser.getRoot(), mMediaBrowserSubscriptionCallback);
                 //mMediaBrowser.subscribe(mMediaBrowser.getRoot(), mMediaBrowserSubscriptionCallback);
-                Log.d("zt", "mMediaController---onConnected--"+String.valueOf(mMediaController==null));
             } catch (Exception e) {
-                Log.d("zt", "mMediaController---Exception--"+String.valueOf(mMediaController==null));
                 throw new RuntimeException(e);
 
             }
