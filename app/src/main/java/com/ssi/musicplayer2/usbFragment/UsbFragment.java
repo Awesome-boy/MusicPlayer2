@@ -236,7 +236,7 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
 
     private void refreshItem() {
         if (mMediaPlayerHelper != null && musicInfoList != null && musicInfoList.size() > 0) {
-            if (SPUtils.getInstance(mContext).getBoolean("usb", false) && scanData) {
+            if (scanData) {
                 int posId = mMediaPlayerHelper.getPos();
                 String path = musicInfoList.get(posId).getPath();
                 String name = musicInfoList.get(posId).getName();
@@ -324,6 +324,7 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
         holdView.setVisibility(View.GONE);
         mLyricGroup.setVisibility(View.GONE);
         music_lyric.setVisibility(View.GONE);
+        btn_play.setBackgroundResource(R.drawable.img_play);
     }
 
     private boolean scanData;

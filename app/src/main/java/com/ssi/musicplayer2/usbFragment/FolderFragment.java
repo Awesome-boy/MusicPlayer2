@@ -19,10 +19,16 @@ import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.adapter.FolderAdapter;
 import com.ssi.musicplayer2.adapter.SingleAdapter;
 import com.ssi.musicplayer2.database.DBManager;
+import com.ssi.musicplayer2.intf.OnCommonAdapterItemClick;
 import com.ssi.musicplayer2.javabean.FolderInfo;
 import com.ssi.musicplayer2.javabean.MusicInfo;
+import com.ssi.musicplayer2.service.MessageEvent;
 import com.ssi.musicplayer2.utils.MyMusicUtil;
 import com.ssi.musicplayer2.view.MusicLibraryRecyclerView;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +46,7 @@ public class FolderFragment extends Fragment {
     private ImageView iv_back;
     private ArrayList<FolderInfo> dbList;
     private RelativeLayout relativeLayout;
+    private SingleAdapter singleAdapter;
 
     @Nullable
     @Override
@@ -53,6 +60,20 @@ public class FolderFragment extends Fragment {
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         mContext=context;
+        EventBus.getDefault().register(this);
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        EventBus.getDefault().unregister(this);
+    }
+
+
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessage(MessageEvent messageEvent) {
+
     }
 
     @Override
@@ -79,9 +100,22 @@ public class FolderFragment extends Fragment {
                String path= folderInfoList.get(position).getPath();
                 List<MusicInfo> listByFolder=dbManager.getMusicListByFolder(path);
                 adapter.update(null);
-                recyclerView.setAdapter(new SingleAdapter(mContext,listByFolder,"folder"));
+                singleAdapter = new SingleAdapter(mContext,listByFolder,"folder");
+                recyclerView.setAdapter(singleAdapter);
                 relativeLayout.setVisibility(View.VISIBLE);
                 iv_back.setVisibility(View.VISIBLE);
+                singleAdapter.setOnCommonAdapterItemClick(new OnCommonAdapterItemClick() {
+                    @Override
+                    public void onItemClickListener(View v, int pos, String type) {
+                        if (type.equals("folder")) {
+                            MessageEvent event = new MessageEvent();
+                            event.setType(type);
+                            event.setMusicInfoList(listByFolder);
+                            event.setPos(pos);
+                            EventBus.getDefault().post(event);
+                        }
+                    }
+                });
             }
         });
         iv_back.setOnClickListener(new View.OnClickListener() {
