@@ -19,6 +19,7 @@ import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.adapter.FolderAdapter;
 import com.ssi.musicplayer2.adapter.SingleAdapter;
 import com.ssi.musicplayer2.database.DBManager;
+import com.ssi.musicplayer2.database.DBNewManager;
 import com.ssi.musicplayer2.intf.OnCommonAdapterItemClick;
 import com.ssi.musicplayer2.javabean.FolderInfo;
 import com.ssi.musicplayer2.javabean.MusicInfo;
@@ -41,7 +42,7 @@ public class FolderFragment extends Fragment {
     private LinearLayoutManager linearLayoutManager;
     private FolderAdapter adapter;
     private List<FolderInfo> folderInfoList = new ArrayList<>();
-    private DBManager dbManager;
+    private DBNewManager dbManager;
     private TextView tv_titlle;
     private ImageView iv_back;
     private ArrayList<FolderInfo> dbList;
@@ -52,7 +53,7 @@ public class FolderFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_single,container,false);
-        dbManager = DBManager.getInstance(getContext());
+        dbManager = DBNewManager.getInstance(getContext());
         return view;
     }
 
@@ -98,7 +99,7 @@ public class FolderFragment extends Fragment {
             @Override
             public void onContentClick(View content, int position) {
                String path= folderInfoList.get(position).getPath();
-                List<MusicInfo> listByFolder=dbManager.getMusicListByFolder(path);
+                List<MusicInfoBean> listByFolder=dbManager.getMusicListByFolder(path);
                 adapter.update(null);
                 singleAdapter = new SingleAdapter(mContext,listByFolder,"folder");
                 recyclerView.setAdapter(singleAdapter);
@@ -113,6 +114,7 @@ public class FolderFragment extends Fragment {
                             event.setMusicInfoList(listByFolder);
                             event.setPos(pos);
                             EventBus.getDefault().post(event);
+                            Log.d("zt","-folderId--"+listByFolder.get(pos).getMediaId());
                         }
                     }
                 });
@@ -134,7 +136,15 @@ public class FolderFragment extends Fragment {
         super.onResume();
         folderInfoList.clear();
         dbList = MyMusicUtil.groupByFolder((ArrayList) dbManager.getAllMusicFromMusicTable());
+        Log.d("zt","--folder---"+dbList.size());
         folderInfoList.addAll(dbList);
         adapter.notifyDataSetChanged();
+    }
+
+    public void refreshItem() {
+        if (singleAdapter!=null){
+            singleAdapter.notifyDataSetChanged();
+        }
+
     }
 }

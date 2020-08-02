@@ -20,6 +20,7 @@ import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.adapter.ArtistAdapter;
 import com.ssi.musicplayer2.adapter.SingleAdapter;
 import com.ssi.musicplayer2.database.DBManager;
+import com.ssi.musicplayer2.database.DBNewManager;
 import com.ssi.musicplayer2.intf.OnCommonAdapterItemClick;
 import com.ssi.musicplayer2.javabean.MusicInfo;
 import com.ssi.musicplayer2.javabean.SingerInfo;
@@ -33,7 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ArtistFragment extends Fragment {
-    private DBManager dbManager;
+    private DBNewManager dbManager;
     private View view;
     private MusicLibraryRecyclerView recyclerView;
     private Context mContext;
@@ -51,7 +52,7 @@ public class ArtistFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_single,container,false);
-        dbManager = DBManager.getInstance(getContext());
+        dbManager = DBNewManager.getInstance(getContext());
         return view;
     }
 
@@ -84,7 +85,7 @@ public class ArtistFragment extends Fragment {
             @Override
             public void onContentClick(View content, int position) {
                 String name=singerInfoList.get(position).getName();
-                List<MusicInfo> listBySinger= dbManager.getMusicListBySinger(name);
+                List<MusicInfoBean> listBySinger= dbManager.getMusicListBySinger(name);
                 adapter.update(null);
                 singleAdapter = new SingleAdapter(mContext,listBySinger,"singer");
                 recyclerView.setAdapter(singleAdapter);
@@ -120,6 +121,7 @@ public class ArtistFragment extends Fragment {
         super.onResume();
         singerInfoList.clear();
         dbList = MyMusicUtil.groupBySinger((ArrayList) dbManager.getAllMusicFromMusicTable());
+        Log.d("zt","--singer---"+dbList.size());
         singerInfoList.addAll(dbList);
         adapter.notifyDataSetChanged();
     }

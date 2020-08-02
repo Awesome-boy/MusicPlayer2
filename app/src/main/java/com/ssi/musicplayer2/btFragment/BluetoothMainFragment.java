@@ -76,7 +76,7 @@ public class BluetoothMainFragment extends SubFragment implements BluetoothConne
             Logger.e(TAG, "initView return for host activity is null");
             return;
         }
-        activity.findViewById(R.id.empty_view).setVisibility(View.GONE);
+//        getActivity().findViewById(R.id.empty_view).setVisibility(View.GONE);
         if (mFm == null) {
             mFm = activity.getSupportFragmentManager();
         }

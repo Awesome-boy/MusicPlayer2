@@ -76,7 +76,7 @@ dependencies {
     implementation 'com.belerweb:pinyin4j:2.5.0'
     implementation project(':d760ui')
     implementation project(':ssiframework')
-//    implementation project(':proxy')
+    implementation project(':mediaBrowser')
 
 
 

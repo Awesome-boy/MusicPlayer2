@@ -20,6 +20,7 @@ import com.ssi.musicplayer2.adapter.AlbumAdapter;
 import com.ssi.musicplayer2.adapter.FolderAdapter;
 import com.ssi.musicplayer2.adapter.SingleAdapter;
 import com.ssi.musicplayer2.database.DBManager;
+import com.ssi.musicplayer2.database.DBNewManager;
 import com.ssi.musicplayer2.intf.OnCommonAdapterItemClick;
 import com.ssi.musicplayer2.javabean.AlbumInfo;
 import com.ssi.musicplayer2.javabean.MusicInfo;
@@ -34,7 +35,7 @@ import java.util.List;
 
 public class AlbumFragment extends Fragment {
 
-    private DBManager dbManager;
+    private DBNewManager dbManager;
     private View view;
     private MusicLibraryRecyclerView recyclerView;
     private Context mContext;
@@ -51,7 +52,7 @@ public class AlbumFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_single,container,false);
-        dbManager = DBManager.getInstance(getContext());
+        dbManager = DBNewManager.getInstance(getContext());
         return view;
     }
 
@@ -84,7 +85,7 @@ public class AlbumFragment extends Fragment {
             @Override
             public void onContentClick(View content, int position) {
                 String name=albumInfoList.get(position).getName();
-                List<MusicInfo> listByAlbum= dbManager.getMusicListByAlbum(name);
+                List<MusicInfoBean> listByAlbum= dbManager.getMusicListByAlbum(name);
                 adapter.update(null);
                 singleAdapter = new SingleAdapter(mContext,listByAlbum,"album");
                 recyclerView.setAdapter(singleAdapter);
@@ -120,6 +121,7 @@ public class AlbumFragment extends Fragment {
         super.onResume();
         albumInfoList.clear();
         dbList = MyMusicUtil.groupByAlbum((ArrayList)dbManager.getAllMusicFromMusicTable());
+        Log.d("zt","--album---"+dbList.size());
         albumInfoList.addAll(dbList);
         adapter.notifyDataSetChanged();
     }

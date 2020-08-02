@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.adapter.SingleAdapter;
 import com.ssi.musicplayer2.database.DBManager;
+import com.ssi.musicplayer2.database.DBNewManager;
 import com.ssi.musicplayer2.intf.OnCommonAdapterItemClick;
 import com.ssi.musicplayer2.javabean.MusicInfo;
 import com.ssi.musicplayer2.service.MessageEvent;
@@ -36,8 +37,8 @@ public class SinleFragment extends Fragment  {
     private View view;
     private MusicLibraryRecyclerView recyclerView;
     private Context mContext;
-    private List<MusicInfo> musicInfoList = new ArrayList<>();
-    private DBManager dbManager;
+    private List<MusicInfoBean> musicInfoList = new ArrayList<>();
+    private DBNewManager dbManager;
     private SingleAdapter adapter;
     private LinearLayoutManager linearLayoutManager;
     private int currentItem=-1;
@@ -46,7 +47,7 @@ public class SinleFragment extends Fragment  {
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         mContext=context;
-        dbManager = DBManager.getInstance(context);
+        dbManager = DBNewManager.getInstance(context);
         EventBus.getDefault().register(this);
     }
 
@@ -60,6 +61,7 @@ public class SinleFragment extends Fragment  {
     public void onResume() {
         super.onResume();
         musicInfoList = dbManager.getAllMusicFromMusicTable();
+        Log.d("zt","--single---"+musicInfoList.size());
         Collections.sort(musicInfoList);
         adapter.updateMusicInfoList(musicInfoList);
         if (currentItem!=-1){

@@ -1,12 +1,13 @@
 package com.ssi.musicplayer2.service;
 
 import com.ssi.musicplayer2.javabean.MusicInfo;
+import com.ssi.musicplayer2.usbFragment.MusicInfoBean;
 
 import java.util.List;
 
 public class MessageEvent {
     private String type;
-    private  List<MusicInfo> musicInfoList;
+    private  List<MusicInfoBean> musicInfoList;
     private int pos;
 
     public MessageEvent(int position) {
@@ -25,11 +26,11 @@ public class MessageEvent {
         this.type = type;
     }
 
-    public List<MusicInfo> getMusicInfoList() {
+    public List<MusicInfoBean> getMusicInfoList() {
         return musicInfoList;
     }
 
-    public void setMusicInfoList(List<MusicInfo> musicInfoList) {
+    public void setMusicInfoList(List<MusicInfoBean> musicInfoList) {
         this.musicInfoList = musicInfoList;
     }
 

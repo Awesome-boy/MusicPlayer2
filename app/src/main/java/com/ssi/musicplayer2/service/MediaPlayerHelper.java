@@ -157,6 +157,9 @@ public class MediaPlayerHelper implements
         @Override
         public void onSkipToNext() {
             super.onSkipToNext();
+            if (list_data.size()==0){
+                return ;
+            }
             if (last_index < list_data.size() - 1)
                 last_index++;
             else

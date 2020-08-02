@@ -1,21 +1,12 @@
 package com.ssi.musicplayer2;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.viewpager.widget.ViewPager;
 
 import android.Manifest;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -28,11 +19,10 @@ import android.widget.Toast;
 import com.dfssi.android.framework.ui.view.TableIndexView;
 import com.ssi.musicplayer2.adapter.MainActivityFragmentAdapter;
 import com.ssi.musicplayer2.btFragment.BluetoothMainFragment;
-import com.ssi.musicplayer2.database.DBManager;
+import com.ssi.musicplayer2.database.DBNewManager;
 import com.ssi.musicplayer2.manager.MainStateInfo;
 import com.ssi.musicplayer2.manager.MainStateInfoViewModel;
-import com.ssi.musicplayer2.usbFragment.UsbFragment;
-import com.ssi.musicplayer2.utils.Logger;
+import com.ssi.musicplayer2.newTest.UsbNewFragment;
 import com.ssi.musicplayer2.utils.SPUtils;
 import com.ssi.musicplayer2.view.USBStatusDialog;
 
@@ -44,7 +34,7 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements ViewPager.OnPageChangeListener, View.OnClickListener, UsbFragment.ChangFragmentListner, Observer<Object> {
+public class MainActivity extends AppCompatActivity implements ViewPager.OnPageChangeListener, View.OnClickListener, UsbNewFragment.ChangFragmentListner, Observer<Object> {
 
     private TextView tv_usb_title;
     private TextView tv_bt_title;
@@ -70,6 +60,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     private boolean usbstate;
     private boolean btstate;
     private MainStateInfoViewModel mMainStateInfoViewModel;
+    private View usbview;
+    private View btview;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,8 +120,9 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         tv_bt_title = findViewById(R.id.bt_pager_title);
         viewPager = findViewById(R.id.viewpager);
         fragmentList = new ArrayList<>();
-        fragmentList.add(new UsbFragment());
+        fragmentList.add(new UsbNewFragment());
         fragmentList.add(new BluetoothMainFragment());
+
         adapter = new MainActivityFragmentAdapter(getSupportFragmentManager(), fragmentList);
         viewPager.setAdapter(adapter);
         viewPager.addOnPageChangeListener(this);
@@ -141,8 +134,14 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         music_dir = findViewById(R.id.music_dir);
         music_artist = findViewById(R.id.music_artist);
         music_album = findViewById(R.id.music_album);
+        music_artist.setEnabled(false);
+        music_lyric.setEnabled(false);
+        music_dir.setEnabled(false);
+        music_album.setEnabled(false);
         tv_usb_title.setOnClickListener(this);
         tv_bt_title.setOnClickListener(this);
+        usbview = findViewById(R.id.usb_pager_title_container);
+        btview = findViewById(R.id.bt_pager_title_container);
         findViewById(R.id.empty_view).setVisibility(View.GONE);
     }
 
@@ -164,6 +163,14 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         music_artist.setVisibility(position == 0 ? View.VISIBLE : View.INVISIBLE);
         music_album.setVisibility(position == 0 ? View.VISIBLE : View.INVISIBLE);
         mTableIndexView.setTableIndex(position, 2);
+        if(position==1){
+            btview.setVisibility(View.VISIBLE);
+            usbview.setVisibility(View.INVISIBLE);
+            findViewById(R.id.empty_view).setVisibility(View.GONE);
+        }else {
+            btview.setVisibility(View.INVISIBLE);
+            usbview.setVisibility(View.VISIBLE);
+        }
     }
 
     @Override
@@ -203,14 +210,14 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
             btstate = true;
             usbstate = true;
         }
-        if (!btstate){
-         boolean lastBtState=SPUtils.getInstance(this).getBoolean("bt",false);
-         if (lastBtState){
-             USBStatusDialog dialog = USBStatusDialog.getInstance(this, getString(R.string.bt_disconnect));
-             dialog.show();
-         }
+        if (!btstate) {
+            boolean lastBtState = SPUtils.getInstance(this).getBoolean("bt", false);
+            if (lastBtState) {
+                USBStatusDialog dialog = USBStatusDialog.getInstance(this, getString(R.string.bt_disconnect));
+                dialog.show();
+            }
         }
-        SPUtils.getInstance(this).save("bt",btstate);
+        SPUtils.getInstance(this).save("bt", btstate);
         changeFragment(usbstate, btstate);
         EventBus.getDefault().post(mainStateInfo);
         Log.d("zt", "usb连接状态-----" + usbstate + "--蓝牙连接状态---" + btstate);
@@ -219,7 +226,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 
     private void changeFragment(boolean usb, boolean bluetooth) {
         if (!usb) {
-            DBManager.getInstance(this).deleteAllTable();
+            DBNewManager.getInstance(this).deleteAllTable();
+            Log.d("zt", "删除数据库所有数据-----");
         }
         if (!usb && bluetooth) {
             viewPager.setCurrentItem(1, true);
@@ -228,7 +236,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         } else if (!bluetooth && !usb) {
             USBStatusDialog dialog = USBStatusDialog.getInstance(this, getString(R.string.tips_no_usb));
             dialog.show();
-            finish();
+//            finish();
         }
 
     }

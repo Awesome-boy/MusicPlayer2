@@ -12,11 +12,11 @@ import android.widget.Toast;
 
 
 import com.ssi.musicplayer2.MyApplication;
-import com.ssi.musicplayer2.database.DBManager;
+import com.ssi.musicplayer2.database.DBNewManager;
 import com.ssi.musicplayer2.javabean.AlbumInfo;
 import com.ssi.musicplayer2.javabean.FolderInfo;
-import com.ssi.musicplayer2.javabean.MusicInfo;
 import com.ssi.musicplayer2.javabean.SingerInfo;
+import com.ssi.musicplayer2.usbFragment.MusicInfoBean;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -32,10 +32,10 @@ public class MyMusicUtil {
 
     private static final String TAG = MyMusicUtil.class.getName();
     //获取当前播放列表
-    public static List<MusicInfo> getCurPlayList(Context context){
-        DBManager dbManager = DBManager.getInstance(context);
+    public static List<MusicInfoBean> getCurPlayList(Context context){
+        DBNewManager dbManager = DBNewManager.getInstance(context);
         int playList = MyMusicUtil.getIntShared(Constant.KEY_LIST);
-        List<MusicInfo> musicInfoList = new ArrayList<>();
+        List<MusicInfoBean> musicInfoList = new ArrayList<>();
         switch (playList){
             case Constant.LIST_ALLMUSIC:
                 musicInfoList = dbManager.getAllMusicFromMusicTable();
@@ -80,14 +80,14 @@ public class MyMusicUtil {
 
     public static void playNextMusic(Context context){
         //获取下一首ID
-        DBManager dbManager = DBManager.getInstance(context);
+        DBNewManager dbManager = DBNewManager.getInstance(context);
         int playMode = MyMusicUtil.getIntShared(Constant.KEY_MODE);
         Log.d(TAG,"next play mode ="+playMode);
         int musicId = MyMusicUtil.getIntShared(Constant.KEY_ID);
-        List<MusicInfo> musicList = getCurPlayList(context);
+        List<MusicInfoBean> musicList = getCurPlayList(context);
         ArrayList<Integer> musicIdList =new ArrayList<>();
-        for (MusicInfo info : musicList){
-            musicIdList.add(info.getId());
+        for (MusicInfoBean info : musicList){
+            musicIdList.add(Integer.valueOf(info.getMediaId()));
         }
         musicId = dbManager.getNextMusic(musicIdList,musicId,playMode);
         MyMusicUtil.setShared(Constant.KEY_ID,musicId);
@@ -112,14 +112,14 @@ public class MyMusicUtil {
 
     public static void playPreMusic(Context context){
         //获取下一首ID
-        DBManager dbManager = DBManager.getInstance(context);
+        DBNewManager dbManager = DBNewManager.getInstance(context);
         int playMode = MyMusicUtil.getIntShared(Constant.KEY_MODE);
         Log.d(TAG,"pre play mode ="+playMode);
         int musicId = MyMusicUtil.getIntShared(Constant.KEY_ID);
-        List<MusicInfo> musicList = getCurPlayList(context);
+        List<MusicInfoBean> musicList = getCurPlayList(context);
         ArrayList<Integer> musicIdList =new ArrayList<>();
-        for (MusicInfo info : musicList){
-            musicIdList.add(info.getId());
+        for (MusicInfoBean info : musicList){
+            musicIdList.add(Integer.valueOf(info.getMediaId()));
         }
         musicId = dbManager.getPreMusic(musicIdList,musicId,playMode);
         MyMusicUtil.setShared(Constant.KEY_ID,musicId);
@@ -147,14 +147,14 @@ public class MyMusicUtil {
             Toast.makeText(context, "歌曲不存在",Toast.LENGTH_LONG).show();
             return;
         }
-        DBManager dbManager = DBManager.getInstance(context);
+        DBNewManager dbManager = DBNewManager.getInstance(context);
         dbManager.setMyLove(musicId);
     }
 
     //设置--铃声的具体方法
     public static void setMyRingtone(Context context)
     {
-        DBManager dbManager = DBManager.getInstance(context);
+        DBNewManager dbManager = DBNewManager.getInstance(context);
         int musicId = MyMusicUtil.getIntShared(Constant.KEY_ID);
         String path = dbManager.getMusicPath(musicId);
         File sdfile = new File(path);
@@ -209,21 +209,21 @@ public class MyMusicUtil {
 
     //按歌手分组
     public static ArrayList<SingerInfo> groupBySinger(ArrayList list) {
-        Map<String, List<MusicInfo>> musicMap = new HashMap<>();
+        Map<String, List<MusicInfoBean>> musicMap = new HashMap<>();
         ArrayList<SingerInfo> singerInfoList = new ArrayList<>();
         for (int i = 0; i < list.size(); i++) {
-            MusicInfo musicInfo = (MusicInfo) list.get(i);
-            if (musicMap.containsKey(musicInfo.getSinger())) {
-                ArrayList singerList = (ArrayList) musicMap.get(musicInfo.getSinger());
+            MusicInfoBean musicInfo = (MusicInfoBean) list.get(i);
+            if (musicMap.containsKey(musicInfo.getArtist())) {
+                ArrayList singerList = (ArrayList) musicMap.get(musicInfo.getArtist());
                 singerList.add(musicInfo);
             } else {
                 ArrayList temp = new ArrayList();
                 temp.add(musicInfo);
-                musicMap.put(musicInfo.getSinger(), temp);
+                musicMap.put(musicInfo.getArtist(), temp);
             }
         }
 
-        for (Map.Entry<String,List<MusicInfo>> entry : musicMap.entrySet()) {
+        for (Map.Entry<String,List<MusicInfoBean>> entry : musicMap.entrySet()) {
             System.out.println("key= " + entry.getKey() + " and value= " + entry.getValue());
             SingerInfo singerInfo = new SingerInfo();
             singerInfo.setName(entry.getKey());
@@ -235,10 +235,10 @@ public class MyMusicUtil {
 
     //按专辑分组
     public static ArrayList<AlbumInfo> groupByAlbum(ArrayList list) {
-        Map<String, List<MusicInfo>> musicMap = new HashMap<>();
+        Map<String, List<MusicInfoBean>> musicMap = new HashMap<>();
         ArrayList<AlbumInfo> albumInfoList = new ArrayList<>();
         for (int i = 0; i < list.size(); i++) {
-            MusicInfo musicInfo = (MusicInfo) list.get(i);
+            MusicInfoBean musicInfo = (MusicInfoBean) list.get(i);
             if (musicMap.containsKey(musicInfo.getAlbum())) {
                 ArrayList albumList = (ArrayList) musicMap.get(musicInfo.getAlbum());
                 albumList.add(musicInfo);
@@ -249,10 +249,10 @@ public class MyMusicUtil {
             }
         }
 
-        for (Map.Entry<String,List<MusicInfo>> entry : musicMap.entrySet()) {
+        for (Map.Entry<String,List<MusicInfoBean>> entry : musicMap.entrySet()) {
             AlbumInfo albumInfo = new AlbumInfo();
             albumInfo.setName(entry.getKey());
-            albumInfo.setSinger(entry.getValue().get(0).getSinger());
+            albumInfo.setSinger(entry.getValue().get(0).getArtist());
             albumInfo.setCount(entry.getValue().size());
             albumInfoList.add(albumInfo);
         }
@@ -262,10 +262,10 @@ public class MyMusicUtil {
 
     //按文件夹分组
     public static ArrayList<FolderInfo> groupByFolder(ArrayList list) {
-        Map<String, List<MusicInfo>> musicMap = new HashMap<>();
+        Map<String, List<MusicInfoBean>> musicMap = new HashMap<>();
         ArrayList<FolderInfo> folderInfoList = new ArrayList<>();
         for (int i = 0; i < list.size(); i++) {
-            MusicInfo musicInfo = (MusicInfo) list.get(i);
+            MusicInfoBean musicInfo = (MusicInfoBean) list.get(i);
             if (musicMap.containsKey(musicInfo.getParentPath())) {
                 ArrayList folderList = (ArrayList) musicMap.get(musicInfo.getParentPath());
                 folderList.add(musicInfo);
@@ -276,7 +276,7 @@ public class MyMusicUtil {
             }
         }
 
-        for (Map.Entry<String,List<MusicInfo>> entry : musicMap.entrySet()) {
+        for (Map.Entry<String,List<MusicInfoBean>> entry : musicMap.entrySet()) {
             System.out.println("key= " + entry.getKey() + " and value= " + entry.getValue());
             FolderInfo folderInfo = new FolderInfo();
             File file = new File(entry.getKey());

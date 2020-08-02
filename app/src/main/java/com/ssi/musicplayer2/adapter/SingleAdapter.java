@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.intf.OnCommonAdapterItemClick;
 import com.ssi.musicplayer2.javabean.MusicInfo;
+import com.ssi.musicplayer2.usbFragment.MusicInfoBean;
 import com.ssi.musicplayer2.utils.Constant;
 import com.ssi.musicplayer2.utils.MyMusicUtil;
 
@@ -23,7 +24,7 @@ import java.util.List;
 public class SingleAdapter extends RecyclerView.Adapter<SingleAdapter.ViewHolder> {
 
     private Context context;
-    private List<MusicInfo> musicInfoList;
+    private List<MusicInfoBean> musicInfoList;
     private LayoutInflater layoutInflater;
     private OnCommonAdapterItemClick onCommonAdapterItemClick;
     private String type;
@@ -32,7 +33,7 @@ public class SingleAdapter extends RecyclerView.Adapter<SingleAdapter.ViewHolder
         this.onCommonAdapterItemClick = onCommonAdapterItemClick;
     }
 
-    public SingleAdapter(Context mContext, List<MusicInfo> musicInfoList, String type) {
+    public SingleAdapter(Context mContext, List<MusicInfoBean> musicInfoList, String type) {
         this.context = mContext;
         this.musicInfoList = musicInfoList;
         this.type = type;
@@ -48,9 +49,10 @@ public class SingleAdapter extends RecyclerView.Adapter<SingleAdapter.ViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        MusicInfo musicInfo = musicInfoList.get(position);
-        holder.textView.setText(position + 1 + "、" + musicInfo.getName());
-        if (musicInfo.getId() == MyMusicUtil.getIntShared(Constant.KEY_ID)) {
+        MusicInfoBean musicInfo = musicInfoList.get(position);
+        holder.textView.setText(position + 1 + "、" + musicInfo.getTitle());
+        String itemId=MyMusicUtil.getStringShared(Constant.KEY_ID);
+        if (musicInfo.getMediaId().equals(itemId)) {
             holder.textView.setTextColor(context.getColor(R.color.context_text_color));
             holder.imageView.setVisibility(View.VISIBLE);
         } else {
@@ -63,7 +65,7 @@ public class SingleAdapter extends RecyclerView.Adapter<SingleAdapter.ViewHolder
             @Override
             public void onClick(View v) {
                 if (onCommonAdapterItemClick != null) {
-                     MyMusicUtil.setShared(Constant.KEY_ID,musicInfo.getId());
+                     MyMusicUtil.setShared(Constant.KEY_ID,musicInfo.getMediaId());
                      notifyDataSetChanged();
                     onCommonAdapterItemClick.onItemClickListener(v, position, type);
                 }
@@ -78,7 +80,7 @@ public class SingleAdapter extends RecyclerView.Adapter<SingleAdapter.ViewHolder
         return musicInfoList == null ? 0 : musicInfoList.size();
     }
 
-    public void updateMusicInfoList(List<MusicInfo> musicInfoList) {
+    public void updateMusicInfoList(List<MusicInfoBean> musicInfoList) {
         this.musicInfoList.clear();
         this.musicInfoList.addAll(musicInfoList);
         notifyDataSetChanged();

@@ -1,32 +1,25 @@
-package com.ssi.musicplayer2.usbFragment;
+package com.ssi.musicplayer2.newTest;
 
 import android.animation.ValueAnimator;
-import android.bluetooth.BluetoothAdapter;
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
 import android.database.Cursor;
-import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.Message;
 import android.provider.MediaStore;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaControllerCompat;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.LinearInterpolator;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -36,17 +29,23 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.dfssi.android.d760ui.TipsDialog;
-import com.ssi.musicplayer2.MainActivity;
+import com.mediabrowser.xiaxl.client.MusicManager;
+import com.mediabrowser.xiaxl.client.listener.OnSaveRecordListener;
 import com.ssi.musicplayer2.MyApplication;
 import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.btFragment.SubFragment;
-import com.ssi.musicplayer2.btFragment.client.BluetoothConnectionHelper;
 import com.ssi.musicplayer2.database.DBManager;
+import com.ssi.musicplayer2.database.DBNewManager;
 import com.ssi.musicplayer2.javabean.MusicInfo;
 import com.ssi.musicplayer2.manager.MainStateInfo;
 import com.ssi.musicplayer2.service.AudioPlayerService;
 import com.ssi.musicplayer2.service.MediaPlayerHelper;
 import com.ssi.musicplayer2.service.MessageEvent;
+import com.ssi.musicplayer2.usbFragment.AlbumFragment;
+import com.ssi.musicplayer2.usbFragment.ArtistFragment;
+import com.ssi.musicplayer2.usbFragment.FolderFragment;
+import com.ssi.musicplayer2.usbFragment.MusicInfoBean;
+import com.ssi.musicplayer2.usbFragment.SinleFragment;
 import com.ssi.musicplayer2.utils.ChineseToEnglish;
 import com.ssi.musicplayer2.utils.Constant;
 import com.ssi.musicplayer2.utils.Logger;
@@ -62,15 +61,14 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 
-public class UsbFragment extends SubFragment implements View.OnClickListener, SeekBar.OnSeekBarChangeListener, ServiceConnection, MediaPlayerHelper.MediaPlayerUpdateCallBack, LyricView.OnPlayerClickListener, ValueAnimator.AnimatorUpdateListener {
+public class UsbNewFragment extends SubFragment implements View.OnClickListener, SeekBar.OnSeekBarChangeListener {
 
-    private static final String TAG = UsbFragment.class.getSimpleName();
+    private static final String TAG = UsbNewFragment.class.getSimpleName();
     private View rootView;
     private TextView song_progress_time;
     private TextView song_duration_time;
@@ -79,60 +77,12 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     private Button btn_previous;
     private Button btn_next;
     private MediaSeekBar seekBar;
-    private List<MusicInfo> musicInfoList;
+    private List<MusicInfoBean> mMusicInfos;
 
 
-    private MediaControllerCompat.Callback mMediaControllerCallback = new MediaControllerCompat.Callback() {
-        @Override
-        public void onPlaybackStateChanged(PlaybackStateCompat state) {
-            switch (state.getState()) {
-                case PlaybackStateCompat.STATE_NONE://无任何状态
-                case PlaybackStateCompat.STATE_PLAYING:
-                    btn_play.setBackgroundResource(R.drawable.img_pause);
-                    break;
-                case PlaybackStateCompat.STATE_PAUSED:
-                case PlaybackStateCompat.STATE_STOPPED:
-                    btn_play.setBackgroundResource(R.drawable.img_play);
-                    break;
-                case PlaybackStateCompat.STATE_SKIPPING_TO_NEXT://下一首
-                    break;
-                case PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS://上一首
-                    break;
-                case PlaybackStateCompat.STATE_FAST_FORWARDING://快进
-                    break;
-                case PlaybackStateCompat.STATE_REWINDING://快退
-                    break;
-            }
-        }
-        @Override
-        public void onMetadataChanged(MediaMetadataCompat metadata) {
-            super.onMetadataChanged(metadata);
-            if (metadata == null || mMediaPlayerHelper == null) {
-                Logger.i(TAG, "onMetadataChanged return for null");
-                return;
-            }
-            int currentId = MyMusicUtil.getIntShared(Constant.KEY_ID) - 1;
-            if ( dbManager.getAllMusicFromMusicTable() == null ||  dbManager.getAllMusicFromMusicTable().size() == 0) {
-                return;
-            }
-            String path =  dbManager.getAllMusicFromMusicTable().get(currentId).getPath();
-            File lyricFile = new File(path.substring(0, path.lastIndexOf(".")) + ".lrc");
-            if (lyricFile.exists()) {
-                mLyricView.reset();
-                mLyricView.setLyricFile(lyricFile, Utils.getCharset(lyricFile.getName()));
-
-            } else {
-                mLyricView.reset();
-            }
-            refreshItem();
-        }
-    };
     private Context mContext;
-    private AudioPlayerService musicService;
-    private MediaPlayerHelper mMediaPlayerHelper;
-    private MediaControllerCompat mMediaController;
     private Message msg;
-    private DBManager dbManager;
+    private DBNewManager dbManager;
 
     private ImageView music_lyric;
     private ImageView music_dir;
@@ -157,6 +107,7 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     private MainStateInfo mainStateInfo;
     private ImageView iv_song_img;
     private ImageView iv_song_img_film;
+    private MusicManager mMusicManager;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -168,17 +119,29 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         mContext = context;
+        initMusicAgent();
         changFragmentListner = (ChangFragmentListner) context;
     }
+
+    /**
+     * 初始化音乐引擎
+     */
+    private void initMusicAgent() {
+        // 初始化
+        if (mMusicManager == null) {
+            mMusicManager = MusicManager.getInstance();
+        }
+        mMusicManager.init(mContext);
+        // 音频变化的监听类
+        mMusicManager.addOnAudioStatusListener(mAudioStatusChangeListener);
+        // 记录播放记录的监听
+        mMusicManager.addOnRecorListener(mOnRecordListener);
+    }
+
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (mProgressAnimator != null) {
-            mProgressAnimator.removeUpdateListener(UsbFragment.this);
-            mProgressAnimator.cancel();
-            mProgressAnimator = null;
-        }
     }
 
     @Override
@@ -207,8 +170,6 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         initView(view);
-        Intent intent = new Intent(mContext, AudioPlayerService.class);
-        mContext.bindService(intent, this, 0);
     }
 
     @Override
@@ -239,7 +200,6 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     }
 
 
-
     private void switchLyicState(int vi) {
         if (mHolderSongAlbum == null) {
             return;
@@ -259,18 +219,18 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
 
 
     private void refreshItem() {
-        if (mMediaPlayerHelper != null && musicInfoList != null && musicInfoList.size() > 0) {
-            if (scanData) {
-                int posId = mMediaPlayerHelper.getPos();
-                String path = musicInfoList.get(posId).getPath();
-                String name = musicInfoList.get(posId).getName();
-                String album = musicInfoList.get(posId).getAlbum();
-                String singer = musicInfoList.get(posId).getSinger();
-                song_title.setText(name);
-                song_order.setText("(" + (posId + 1) + "/" + musicInfoList.size() + "）");
-                song_album.setText(album);
-                song_artist.setText(singer);
-            }
+        if (mMusicInfos != null && mMusicInfos.size() > 0) {
+//            if (scanData) {
+//                int posId = mMediaPlayerHelper.getPos();
+//                String path = musicInfoList.get(posId).getPath();
+//                String name = musicInfoList.get(posId).getName();
+//                String album = musicInfoList.get(posId).getAlbum();
+//                String singer = musicInfoList.get(posId).getSinger();
+//                song_title.setText(name);
+//                song_order.setText("(" + (posId + 1) + "/" + musicInfoList.size() + "）");
+//                song_album.setText(album);
+//                song_artist.setText(singer);
+//            }
             if (currentFragment instanceof SinleFragment) {
                 ((SinleFragment) currentFragment).refreshItem();
             } else if (currentFragment instanceof AlbumFragment) {
@@ -288,13 +248,12 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessage(Object o) {
         if (o instanceof MessageEvent) {
-//            MessageEvent event = (MessageEvent) o;
-//            musicInfoList = event.getMusicInfoList();
-//            int pos = event.getPos();
-//            if (mMediaPlayerHelper != null) {
-//                mMediaPlayerHelper.setPlayeData(musicInfoList);
-//                mMediaPlayerHelper.setPlayID(pos);
-//            }
+            MessageEvent event = (MessageEvent) o;
+            mMusicInfos = event.getMusicInfoList();
+            int pos = event.getPos();
+            if (mMusicManager!=null){
+                mMusicManager.playMusicList(mMusicInfos,pos);
+            }
         } else if (o instanceof MainStateInfo) {
             mainStateInfo = (MainStateInfo) o;
             if (mainStateInfo.mConnectedState == 1 || mainStateInfo.mConnectedState == 3) {
@@ -326,10 +285,6 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     }
 
     private void resetFragment() {
-        if (mMediaController != null) {
-            mMediaController.getTransportControls().pause();
-            mMediaPlayerHelper.mMediaPlayer.reset();
-        }
         music_artist.setEnabled(false);
         music_lyric.setEnabled(false);
         music_dir.setEnabled(false);
@@ -373,15 +328,6 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
 
 
     private void refreshState() {
-        if (mMediaController != null) {
-            if (mMediaController.getPlaybackState().getState() == PlaybackStateCompat.STATE_PLAYING) {
-                btn_play.setBackgroundResource(R.drawable.img_pause);
-            } else {
-                btn_play.setBackgroundResource(R.drawable.img_play);
-            }
-        } else {
-            btn_play.setBackgroundResource(R.drawable.img_play);
-        }
     }
 
     public interface ChangFragmentListner {
@@ -394,9 +340,11 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
         if (dialog != null && dialog.isShowing()) {
             dialog.dismiss();
         }
-        musicInfoList = dbManager.getAllMusicFromMusicTable();
-        Logger.d("zt", "---数据库的数据：----" + musicInfoList.size());
-        if (musicInfoList != null && musicInfoList.size() == 0) {
+        Log.d("zt", "--scanComplete--" + mMusicInfos.size());
+
+        Log.d("zt", "---数据库的所有数据---" + dbManager.getAllMusicFromMusicTable().size());
+
+        if (mMusicInfos != null && mMusicInfos.size() == 0) {
             USBStatusDialog.getInstance(mContext, getString(R.string.no_music_usb)).show();
             if (mainStateInfo != null) {
                 if (mainStateInfo.mConnectedState == MainStateInfo.BT_NO_AND_USB_NO || mainStateInfo.mConnectedState == MainStateInfo.BT_NO_AND_USB_YES) {
@@ -410,7 +358,7 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
                 }
             }
         } else {
-            if (musicInfoList.size() > 0) {
+            if (mMusicInfos.size() > 0) {
                 music_artist.setEnabled(true);
                 music_lyric.setEnabled(true);
                 music_dir.setEnabled(true);
@@ -419,20 +367,18 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
                 btn_play.setEnabled(true);
                 btn_next.setEnabled(true);
                 btn_previous.setEnabled(true);
-                if (mMediaPlayerHelper != null) {
-                    mMediaPlayerHelper.setPlayeData(musicInfoList);
-                    mMediaPlayerHelper.setPlayID(0);
+                if (mMusicManager != null) {
+                    mMusicManager.playMusicList(mMusicInfos, 0);
                 }
             }
 
 
         }
         refreshItem();
-
     }
 
     public void startScanLocalMusic(final String path) {
-        dbManager = DBManager.getInstance(MyApplication.getContext());
+        dbManager = DBNewManager.getInstance(MyApplication.getContext());
         new Thread() {
             @Override
             public void run() {
@@ -452,53 +398,53 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     }
 
     private void querySong1(String filepath) {
-        String[] muiscInfoArray = new String[]{
-                MediaStore.Audio.Media.TITLE,               //歌曲名称
-                MediaStore.Audio.Media.ARTIST,              //歌曲歌手
-                MediaStore.Audio.Media.ALBUM,               //歌曲的专辑名
-                MediaStore.Audio.Media.DURATION,            //歌曲时长
-                MediaStore.Audio.Media.DATA};               //歌曲文件的全路径
         Cursor cursor = MyApplication.getContext().getContentResolver().query(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, muiscInfoArray,
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null,
                 MediaStore.Audio.Media.DATA + " like ?",
                 new String[]{filepath + "%"},
                 MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
         if (cursor != null && cursor.getCount() != 0) {
-            musicInfoList = new ArrayList<MusicInfo>();
+            mMusicInfos = new ArrayList<MusicInfoBean>();
             Log.i(TAG, "run: cursor.getCount() = " + cursor.getCount());
             while (cursor.moveToNext()) {
+                long id = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID));
                 String name = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
                 String singer = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
                 String album = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
+                int duration = cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION));
+                //long size = cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media.SIZE));
                 String path = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
+//                String musicFilename = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DISPLAY_NAME));
+//                String genre = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.MIME_TYPE));
+//                int albumArtResId = (int)cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID));
+//                String albumArtResName = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
                 File file = new File(path);
                 String parentPath = file.getParentFile().getPath();
-
+                Log.d("zt", "--scaning--" + path + "---id--" + String.valueOf(id));
                 name = replaseUnKnowe(name);
                 singer = replaseUnKnowe(singer);
                 album = replaseUnKnowe(album);
                 path = replaseUnKnowe(path);
 
-                MusicInfo musicInfo = new MusicInfo();
+                MusicInfoBean musicInfo = new MusicInfoBean();
 
-                musicInfo.setName(name);
+                musicInfo.setTitle(name);
                 musicInfo.setSinger(singer);
                 musicInfo.setAlbum(album);
                 musicInfo.setPath(path);
+                musicInfo.setMediaId(String.valueOf(id));
+                musicInfo.setDuration(duration);
                 Log.e(TAG, "run: parentPath = " + parentPath);
                 musicInfo.setParentPath(parentPath);
                 musicInfo.setFirstLetter(ChineseToEnglish.StringToPinyinSpecial(name).toUpperCase().charAt(0) + "");
-                musicInfoList.add(musicInfo);
-
+                mMusicInfos.add(musicInfo);
+                Log.d("zt", "--scaningt--" + mMusicInfos.size());
             }
-
-            //扫描完成获取一下当前播放音乐及路径
-//            curMusicId = MyMusicUtil.getIntShared(Constant.KEY_ID);
-//            curMusicPath = dbManager.getMusicPath(curMusicId);
-
             // 根据a-z进行排序源数据
-            Collections.sort(musicInfoList);
-            dbManager.updateAllMusic(musicInfoList);
+            Collections.sort(mMusicInfos);
+            Log.d("zt", "--ready--" );
+            dbManager.updateAllMusic(mMusicInfos);
+            Log.d("zt", "--end--" );
             //扫描完成
             msg = new Message();
             msg.what = Constant.SCAN_COMPLETE;
@@ -532,8 +478,7 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     @Override
     public void onStart() {
         super.onStart();
-        Intent startIntent = new Intent(mContext, AudioPlayerService.class);
-        mContext.startService(startIntent);
+
     }
 
     private void initView(View view) {
@@ -578,7 +523,7 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
         holdView = getActivity().findViewById(R.id.empty_view);
         mLyricGroup = view.findViewById(R.id.lyric_group);
         mLyricView = view.findViewById(R.id.custom_lyric_view);
-        mLyricView.setOnPlayerClickListener(this);
+//        mLyricView.setOnPlayerClickListener(this);
 
         mHolderSongAlbum = view.findViewById(R.id.holder_song_album);
         mHolderSongTitle = view.findViewById(R.id.holder_song_title);
@@ -594,15 +539,14 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
         switch (v.getId()) {
             case R.id.button_play:
                 //todo 播放或者暂停
-                if (mMediaController == null) {
-                    return;
-                }
-                if (mMediaController.getPlaybackState().getState() == PlaybackStateCompat.STATE_PLAYING) {
-                    mMediaController.getTransportControls().pause();
-                } else if (mMediaController.getPlaybackState().getState() == PlaybackStateCompat.STATE_PAUSED) {
-                    mMediaController.getTransportControls().play();
+                if (mIsPlaying) {
+                    if (mMusicManager != null) {
+                        mMusicManager.pause();
+                    }
                 } else {
-                    mMediaController.getTransportControls().playFromSearch("", null);
+                    if (mMusicManager != null) {
+                        mMusicManager.playMusicList(mMusicInfos, 0);
+                    }
                 }
                 break;
             case R.id.button_mix_play:
@@ -621,17 +565,17 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
 
                 break;
             case R.id.button_previous:
-
                 //todo 上一首
-                if (mMediaController != null) {
-                    mMediaController.getTransportControls().skipToPrevious();
+                Log.d("zt", "--上一首---");
+                if (mMusicManager != null) {
+                    mMusicManager.skipToPrevious();
                 }
-
                 break;
             case R.id.button_next:
                 //todo 下一首
-                if (mMediaController != null) {
-                    mMediaController.getTransportControls().skipToNext();
+                Log.d("zt", "--下一首---");
+                if (mMusicManager != null) {
+                    mMusicManager.skipToNext();
                 }
 
                 break;
@@ -708,20 +652,7 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
         //更新时实播放进度
         song_progress_time.setText(turnTime(progress));
-        final int maxV = musicTime;
-        final int timeToEnd = (int) ((maxV - progress) * 1000 / 1);
-        if (timeToEnd <= 0) {
-            Logger.e(TAG, "onPlaybackStateChanged return for timeToEnd is negative");
-            return;
-        }
-        if (mProgressAnimator == null) {
 
-            mProgressAnimator = ValueAnimator.ofInt(progress * 1000, maxV * 1000)
-                    .setDuration(timeToEnd);
-            mProgressAnimator.setInterpolator(new LinearInterpolator());
-            mProgressAnimator.addUpdateListener(UsbFragment.this);
-            mProgressAnimator.start();
-        }
     }
 
     /**
@@ -754,114 +685,125 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
         return (d > 0 ? d > 9 ? d : "0" + d : "00") + ":" + (s > 9 ? s : "0" + s);
     }
 
-    private boolean mIsTracking = false;
 
     @Override
     public void onStartTrackingTouch(SeekBar seekBar) {
-        mIsTracking = true;
+
 
     }
 
     @Override
     public void onStopTrackingTouch(SeekBar seekBar) {
-        mIsTracking = false;
-        //更新拖动进度
-        mMediaPlayerHelper.getMediaPlayer().seekTo(
-                seekBar.getProgress() * mMediaPlayerHelper.getMediaPlayer().getDuration()
-                        / seekBar.getMax());
-    }
-
-    @Override
-    public void onServiceConnected(ComponentName name, IBinder iBinder) {
-        if (iBinder instanceof AudioPlayerService.ServiceBinder) {
-            try {
-                //获取服务
-                musicService = ((AudioPlayerService.ServiceBinder) iBinder).getService();
-                //获取帮助类
-                mMediaPlayerHelper = musicService.getMediaPlayerHelper();
-                //设置媒体播放回键听
-                mMediaPlayerHelper.setMediaPlayerUpdateListener(this);
-                //设置数据源
-                mMediaPlayerHelper.setPlayeData(musicInfoList);
-                //设置更新的seekBaar
-                mMediaPlayerHelper.setSeekBar(seekBar);
-                //设置媒体控制器
-                mMediaController = new MediaControllerCompat(mContext,
-                        musicService.getMediaSessionToken());
-                //注册回调
-                mMediaController.registerCallback(mMediaControllerCallback);
-            } catch (Exception e) {
-                Log.e(getClass().getName(), "serviceConnectedException==" + e.getMessage());
-            }
-        }
 
     }
 
-    @Override
-    public void onServiceDisconnected(ComponentName name) {
+    /**
+     * 数据
+     */
+    // 是否正在播放的标识
+    private boolean mIsPlaying;
 
-    }
-
-    @Override
-    public void onCompletion(MediaPlayer mediaPlayer) {
-        //自动播放下一首
-        int playModel = SPUtils.getInstance(mContext).getInt("model", 0);
-        if (playModel == 0) {
-            mMediaController.getTransportControls().skipToNext();
-        } else if (playModel == 1) {
-            int currentId = MyMusicUtil.getIntShared(Constant.KEY_ID);
-            mMediaPlayerHelper.setPlayID(currentId - 1);
-        } else {
-            SecureRandom sr = new SecureRandom();
-            int nextId = sr.nextInt(musicInfoList.size());
-            mMediaPlayerHelper.setPlayID(nextId);
-        }
-
-    }
-
-    @Override
-    public void onBufferingUpdate(MediaPlayer mediaPlayer, int percent) {
-        //设置二级缓冲显示位置。
-        seekBar.setSecondaryProgress(percent);
-    }
-
-    @Override
-    public void onPrepared(MediaPlayer mediaPlayer) {
-        musicTime = mediaPlayer.getDuration() / 1000;
-        int minute = musicTime / 60;
-        int second = musicTime % 60;
-        song_duration_time.setText(minute + ":" + (second > 9 ? second : "0" + second));
-        if (mProgressAnimator != null) {
-            mProgressAnimator.removeUpdateListener(UsbFragment.this);
-            mProgressAnimator.cancel();
-            mProgressAnimator = null;
-        }
-
-    }
-
-    @Override
-    public void onPlayError(MediaPlayer mediaPlayer) {
-        if (mMediaController != null) {
-            mMediaController.getTransportControls().skipToNext();
-        }
-    }
-
-    @Override
-    public void onPlayerClicked(long progress, String content) {
-        if (mMediaController != null) {
-            mMediaController.getTransportControls().seekTo(progress);
-        }
-    }
-
-
-    @Override
-    public void onAnimationUpdate(ValueAnimator animation) {
-        if (mLyricView != null) {
-            mLyricView.setCurrentTimeMillis((int) animation.getAnimatedValue());
-        }
-        if (mIsTracking && mProgressAnimator != null) {
-            animation.cancel();
+    /**
+     * 音频播放状态变化的回调
+     *
+     * @param playbackState
+     */
+    private void onMediaPlaybackStateChanged(PlaybackStateCompat playbackState) {
+        if (playbackState == null) {
             return;
         }
+        // 正在播放
+        mIsPlaying =
+                playbackState.getState() == PlaybackStateCompat.STATE_PLAYING;
+
+        // 更新UI
+        if (mIsPlaying) {
+            btn_play.setBackgroundResource(R.drawable.img_pause);
+        } else {
+            btn_play.setBackgroundResource(R.drawable.img_play);
+        }
+
+        /**
+         * 设置播放进度
+         */
+        final int progress = (int) playbackState.getPosition();
+        seekBar.setProgress(progress);
+        switch (playbackState.getState()) {
+            case PlaybackStateCompat.STATE_PLAYING:
+//                final int timeToEnd = (int) ((mSeekBarAudio.getMax() - progress) / playbackState.getPlaybackSpeed());
+//                seekBar.startProgressAnima(progress, mSeekBarAudio.getMax(), timeToEnd);
+                break;
+            case PlaybackStateCompat.STATE_PAUSED:
+//                seekBar.stopProgressAnima();
+                break;
+
+        }
+
     }
+
+
+    /**
+     * 播放音频数据 发生变化的回调
+     *
+     * @param mediaMetadata
+     */
+    private void onMediaMetadataChanged(MediaMetadataCompat mediaMetadata) {
+        if (mediaMetadata == null) {
+            return;
+        }
+        // 音频的标题
+        song_title.setText(
+                mediaMetadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE));
+        // 音频作者
+        song_artist.setText(
+                mediaMetadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST));
+        // 音频图片
+//        mAlbumArtImg.setImageBitmap(MusicLibrary.getAlbumBitmap(
+//                MainActivity.this,
+//                mediaMetadata.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)));
+
+        // 进度条
+        final int max = mediaMetadata != null
+                ? (int) mediaMetadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION)
+                : 0;
+        seekBar.setProgress(0);
+        seekBar.setMax(max);
+    }
+
+    // ############################################################################################
+
+
+    /**
+     * 音频变化回调
+     */
+    MusicManager.OnAudioStatusChangeListener mAudioStatusChangeListener = new MusicManager.OnAudioStatusChangeListener() {
+        @Override
+        public void onPlaybackStateChanged(@NonNull PlaybackStateCompat state) {
+            // 播放音频 状态变化
+            onMediaPlaybackStateChanged(state);
+        }
+
+        @Override
+        public void onMetadataChanged(MediaMetadataCompat metadata) {
+            // 播放音频变化的回调
+            onMediaMetadataChanged(metadata);
+        }
+
+        @Override
+        public void onQueueChanged(List<MediaSessionCompat.QueueItem> queue) {
+            // TODO 播放队列发生变化
+        }
+    };
+
+    /**
+     * 记录播放位置的回调
+     */
+    OnSaveRecordListener mOnRecordListener = new OnSaveRecordListener() {
+        @Override
+        public void onSaveRecord(MediaMetadataCompat mediaMetadataCompat, long postion) {
+            // TODO 保存播放记录用
+        }
+    };
+
+
 }
