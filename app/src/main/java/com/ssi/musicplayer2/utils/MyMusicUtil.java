@@ -2,7 +2,6 @@ package com.ssi.musicplayer2.utils;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -12,7 +11,7 @@ import android.widget.Toast;
 
 
 import com.ssi.musicplayer2.MyApplication;
-import com.ssi.musicplayer2.database.DBNewManager;
+import com.ssi.musicplayer2.database.DBManager;
 import com.ssi.musicplayer2.javabean.AlbumInfo;
 import com.ssi.musicplayer2.javabean.FolderInfo;
 import com.ssi.musicplayer2.javabean.SingerInfo;
@@ -33,7 +32,7 @@ public class MyMusicUtil {
     private static final String TAG = MyMusicUtil.class.getName();
     //获取当前播放列表
     public static List<MusicInfoBean> getCurPlayList(Context context){
-        DBNewManager dbManager = DBNewManager.getInstance(context);
+        DBManager dbManager = DBManager.getInstance(context);
         int playList = MyMusicUtil.getIntShared(Constant.KEY_LIST);
         List<MusicInfoBean> musicInfoList = new ArrayList<>();
         switch (playList){
@@ -80,7 +79,7 @@ public class MyMusicUtil {
 
     public static void playNextMusic(Context context){
         //获取下一首ID
-        DBNewManager dbManager = DBNewManager.getInstance(context);
+        DBManager dbManager = DBManager.getInstance(context);
         int playMode = MyMusicUtil.getIntShared(Constant.KEY_MODE);
         Log.d(TAG,"next play mode ="+playMode);
         int musicId = MyMusicUtil.getIntShared(Constant.KEY_ID);
@@ -112,7 +111,7 @@ public class MyMusicUtil {
 
     public static void playPreMusic(Context context){
         //获取下一首ID
-        DBNewManager dbManager = DBNewManager.getInstance(context);
+        DBManager dbManager = DBManager.getInstance(context);
         int playMode = MyMusicUtil.getIntShared(Constant.KEY_MODE);
         Log.d(TAG,"pre play mode ="+playMode);
         int musicId = MyMusicUtil.getIntShared(Constant.KEY_ID);
@@ -147,14 +146,14 @@ public class MyMusicUtil {
             Toast.makeText(context, "歌曲不存在",Toast.LENGTH_LONG).show();
             return;
         }
-        DBNewManager dbManager = DBNewManager.getInstance(context);
+        DBManager dbManager = DBManager.getInstance(context);
         dbManager.setMyLove(musicId);
     }
 
     //设置--铃声的具体方法
     public static void setMyRingtone(Context context)
     {
-        DBNewManager dbManager = DBNewManager.getInstance(context);
+        DBManager dbManager = DBManager.getInstance(context);
         int musicId = MyMusicUtil.getIntShared(Constant.KEY_ID);
         String path = dbManager.getMusicPath(musicId);
         File sdfile = new File(path);

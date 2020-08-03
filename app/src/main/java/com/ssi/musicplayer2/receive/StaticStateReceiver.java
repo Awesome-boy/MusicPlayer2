@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.UserHandle;
+import android.util.Log;
 
 import com.ssi.musicplayer2.utils.Logger;
 
@@ -20,6 +21,7 @@ public class StaticStateReceiver extends BroadcastReceiver {
             Logger.d(TAG, "StaticStateReceiver return for null");
             return;
         }
+        Log.d("zt","--usb状态改变--");
         intent.setComponent(TAG_SERVICE);
         context.startServiceAsUser(intent, UserHandle.SYSTEM);
     }

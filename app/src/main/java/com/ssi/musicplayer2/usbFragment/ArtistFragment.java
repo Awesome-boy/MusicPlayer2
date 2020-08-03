@@ -7,9 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -20,9 +18,7 @@ import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.adapter.ArtistAdapter;
 import com.ssi.musicplayer2.adapter.SingleAdapter;
 import com.ssi.musicplayer2.database.DBManager;
-import com.ssi.musicplayer2.database.DBNewManager;
 import com.ssi.musicplayer2.intf.OnCommonAdapterItemClick;
-import com.ssi.musicplayer2.javabean.MusicInfo;
 import com.ssi.musicplayer2.javabean.SingerInfo;
 import com.ssi.musicplayer2.service.MessageEvent;
 import com.ssi.musicplayer2.utils.MyMusicUtil;
@@ -34,7 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ArtistFragment extends Fragment {
-    private DBNewManager dbManager;
+    private DBManager dbManager;
     private View view;
     private MusicLibraryRecyclerView recyclerView;
     private Context mContext;
@@ -52,7 +48,7 @@ public class ArtistFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_single,container,false);
-        dbManager = DBNewManager.getInstance(getContext());
+        dbManager = DBManager.getInstance(getContext());
         return view;
     }
 

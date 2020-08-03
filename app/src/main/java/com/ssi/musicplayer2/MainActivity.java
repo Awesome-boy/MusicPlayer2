@@ -17,24 +17,20 @@ import android.widget.Toast;
 
 
 import com.dfssi.android.framework.ui.view.TableIndexView;
+import com.mediabrowser.xiaxl.client.utils.SPUtils;
 import com.ssi.musicplayer2.adapter.MainActivityFragmentAdapter;
 import com.ssi.musicplayer2.btFragment.BluetoothMainFragment;
-import com.ssi.musicplayer2.database.DBNewManager;
+import com.ssi.musicplayer2.database.DBManager;
 import com.ssi.musicplayer2.manager.MainStateInfo;
 import com.ssi.musicplayer2.manager.MainStateInfoViewModel;
-import com.ssi.musicplayer2.newTest.UsbNewFragment;
-import com.ssi.musicplayer2.utils.SPUtils;
+import com.ssi.musicplayer2.usbFragment.UsbFragment;
 import com.ssi.musicplayer2.view.USBStatusDialog;
 
-
-import org.greenrobot.eventbus.EventBus;
-import org.greenrobot.eventbus.Subscribe;
-import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements ViewPager.OnPageChangeListener, View.OnClickListener, UsbNewFragment.ChangFragmentListner, Observer<Object> {
+public class MainActivity extends AppCompatActivity implements ViewPager.OnPageChangeListener, View.OnClickListener, UsbFragment.ChangFragmentListner, Observer<Object> {
 
     private TextView tv_usb_title;
     private TextView tv_bt_title;
@@ -74,7 +70,6 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         mMainStateInfoViewModel = MainStateInfoViewModel.getInstance();
         mMainStateInfoViewModel.addMainStateInfoListener(this, this);
         mMainStateInfoViewModel.addScanStateListener(this, this);
-        EventBus.getDefault().register(this);
         switchState(mMainStateInfoViewModel.getMainStateInfo());
     }
 
@@ -120,7 +115,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         tv_bt_title = findViewById(R.id.bt_pager_title);
         viewPager = findViewById(R.id.viewpager);
         fragmentList = new ArrayList<>();
-        fragmentList.add(new UsbNewFragment());
+        fragmentList.add(new UsbFragment());
         fragmentList.add(new BluetoothMainFragment());
 
         adapter = new MainActivityFragmentAdapter(getSupportFragmentManager(), fragmentList);
@@ -195,6 +190,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 
     private void switchState(MainStateInfo mainStateInfo) {
         if (mainStateInfo == null) {
+            Log.d("zt", "mainStateInfo is null-----" );
             return;
         }
         if (mainStateInfo.mConnectedState == 0) {
@@ -219,14 +215,13 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         }
         SPUtils.getInstance(this).save("bt", btstate);
         changeFragment(usbstate, btstate);
-        EventBus.getDefault().post(mainStateInfo);
         Log.d("zt", "usb连接状态-----" + usbstate + "--蓝牙连接状态---" + btstate);
 
     }
 
     private void changeFragment(boolean usb, boolean bluetooth) {
         if (!usb) {
-            DBNewManager.getInstance(this).deleteAllTable();
+            DBManager.getInstance(this).deleteAllTable();
             Log.d("zt", "删除数据库所有数据-----");
         }
         if (!usb && bluetooth) {
@@ -241,10 +236,6 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onMessage(Object o) {
-
-    }
 
     @Override
     protected void onDestroy() {
@@ -259,7 +250,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
             viewPager.clearOnPageChangeListeners();
             viewPager = null;
         }
-        EventBus.getDefault().unregister(this);
+        Log.d("zt","--onDestroy----");
     }
 
     @Override

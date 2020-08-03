@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_height="match_parent"
+    android:layout_width="match_parent">
+    <item android:state_pressed="true" >
+        <bitmap
+            android:alpha="0.5"
+            android:tileMode="disabled"
+            android:gravity="fill_vertical|fill_horizontal"
+            android:src="@drawable/img_next"/>
+    </item>
+    <item >
+        <bitmap
+            android:tileMode="disabled"
+            android:gravity="fill_vertical|fill_horizontal"
+            android:src="@drawable/img_next"/>
+    </item>
+</selector>

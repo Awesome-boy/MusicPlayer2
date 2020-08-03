@@ -15,7 +15,6 @@ import androidx.fragment.app.FragmentManager;
 import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.btFragment.client.BluetoothConnectionHelper;
 import com.ssi.musicplayer2.utils.Logger;
-import com.ssi.musicplayer2.utils.SPUtils;
 
 
 public class BluetoothMainFragment extends SubFragment implements BluetoothConnectionHelper.ConnectionStateListener{

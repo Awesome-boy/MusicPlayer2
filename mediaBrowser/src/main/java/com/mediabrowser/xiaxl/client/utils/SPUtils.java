@@ -1,4 +1,4 @@
-package com.ssi.musicplayer2.utils;
+package com.mediabrowser.xiaxl.client.utils;
 
 import android.content.Context;
 import android.content.SharedPreferences;

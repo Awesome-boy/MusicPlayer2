@@ -1,20 +1,18 @@
 package com.ssi.musicplayer2.usbFragment;
 
 import android.animation.ValueAnimator;
-import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.database.Cursor;
-import android.media.MediaPlayer;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.Message;
 import android.provider.MediaStore;
 import android.support.v4.media.MediaMetadataCompat;
-import android.support.v4.media.session.MediaControllerCompat;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -26,7 +24,6 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -34,24 +31,24 @@ import androidx.constraintlayout.widget.Group;
 import androidx.constraintlayout.widget.Placeholder;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.Observer;
 
 import com.dfssi.android.d760ui.TipsDialog;
-import com.ssi.musicplayer2.MainActivity;
+import com.mediabrowser.xiaxl.client.MusicManager;
+import com.mediabrowser.xiaxl.client.listener.OnSaveRecordListener;
+import com.mediabrowser.xiaxl.client.utils.MusicMetadataConstant;
+import com.mediabrowser.xiaxl.client.utils.SPUtils;
 import com.ssi.musicplayer2.MyApplication;
 import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.btFragment.SubFragment;
-import com.ssi.musicplayer2.btFragment.client.BluetoothConnectionHelper;
 import com.ssi.musicplayer2.database.DBManager;
-import com.ssi.musicplayer2.javabean.MusicInfo;
 import com.ssi.musicplayer2.manager.MainStateInfo;
-import com.ssi.musicplayer2.service.AudioPlayerService;
-import com.ssi.musicplayer2.service.MediaPlayerHelper;
+import com.ssi.musicplayer2.manager.MainStateInfoViewModel;
 import com.ssi.musicplayer2.service.MessageEvent;
 import com.ssi.musicplayer2.utils.ChineseToEnglish;
 import com.ssi.musicplayer2.utils.Constant;
 import com.ssi.musicplayer2.utils.Logger;
 import com.ssi.musicplayer2.utils.MyMusicUtil;
-import com.ssi.musicplayer2.utils.SPUtils;
 import com.ssi.musicplayer2.utils.Utils;
 import com.ssi.musicplayer2.view.LyricView;
 import com.ssi.musicplayer2.view.MediaSeekBar;
@@ -62,13 +59,19 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
-import java.security.SecureRandom;
+import java.io.IOException;
+import java.io.Serializable;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 
-public class UsbFragment extends SubFragment implements View.OnClickListener, SeekBar.OnSeekBarChangeListener, ServiceConnection, MediaPlayerHelper.MediaPlayerUpdateCallBack, LyricView.OnPlayerClickListener, ValueAnimator.AnimatorUpdateListener {
+public class UsbFragment extends SubFragment implements View.OnClickListener, SeekBar.OnSeekBarChangeListener, ValueAnimator.AnimatorUpdateListener, Observer<Object> {
 
     private static final String TAG = UsbFragment.class.getSimpleName();
     private View rootView;
@@ -79,58 +82,10 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     private Button btn_previous;
     private Button btn_next;
     private MediaSeekBar seekBar;
-    private List<MusicInfo> musicInfoList;
+    private List<MusicInfoBean> mMusicInfos;
 
 
-    private MediaControllerCompat.Callback mMediaControllerCallback = new MediaControllerCompat.Callback() {
-        @Override
-        public void onPlaybackStateChanged(PlaybackStateCompat state) {
-            switch (state.getState()) {
-                case PlaybackStateCompat.STATE_NONE://无任何状态
-                case PlaybackStateCompat.STATE_PLAYING:
-                    btn_play.setBackgroundResource(R.drawable.img_pause);
-                    break;
-                case PlaybackStateCompat.STATE_PAUSED:
-                case PlaybackStateCompat.STATE_STOPPED:
-                    btn_play.setBackgroundResource(R.drawable.img_play);
-                    break;
-                case PlaybackStateCompat.STATE_SKIPPING_TO_NEXT://下一首
-                    break;
-                case PlaybackStateCompat.STATE_SKIPPING_TO_PREVIOUS://上一首
-                    break;
-                case PlaybackStateCompat.STATE_FAST_FORWARDING://快进
-                    break;
-                case PlaybackStateCompat.STATE_REWINDING://快退
-                    break;
-            }
-        }
-        @Override
-        public void onMetadataChanged(MediaMetadataCompat metadata) {
-            super.onMetadataChanged(metadata);
-            if (metadata == null || mMediaPlayerHelper == null) {
-                Logger.i(TAG, "onMetadataChanged return for null");
-                return;
-            }
-            int currentId = MyMusicUtil.getIntShared(Constant.KEY_ID) - 1;
-            if ( dbManager.getAllMusicFromMusicTable() == null ||  dbManager.getAllMusicFromMusicTable().size() == 0) {
-                return;
-            }
-            String path =  dbManager.getAllMusicFromMusicTable().get(currentId).getPath();
-            File lyricFile = new File(path.substring(0, path.lastIndexOf(".")) + ".lrc");
-            if (lyricFile.exists()) {
-                mLyricView.reset();
-                mLyricView.setLyricFile(lyricFile, Utils.getCharset(lyricFile.getName()));
-
-            } else {
-                mLyricView.reset();
-            }
-            refreshItem();
-        }
-    };
     private Context mContext;
-    private AudioPlayerService musicService;
-    private MediaPlayerHelper mMediaPlayerHelper;
-    private MediaControllerCompat mMediaController;
     private Message msg;
     private DBManager dbManager;
 
@@ -157,11 +112,27 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     private MainStateInfo mainStateInfo;
     private ImageView iv_song_img;
     private ImageView iv_song_img_film;
+    private MusicManager mMusicManager;
+
+    private static final ComponentName MEDIA_SERVICE = new ComponentName("com.ssi.musicplayer2",
+            "com.mediabrowser.xiaxl.service.MusicService");
+    private MainStateInfoViewModel mMainStateInfoViewModel;
+    private getPCMFileAsyncTask asyncTask;
+    private boolean scanPcm;
+    private List<String> pcmList = new ArrayList<>();
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        initMusicAgent();
+        initstate();
         EventBus.getDefault().register(this);
+    }
+
+    private void initstate() {
+        mMainStateInfoViewModel = MainStateInfoViewModel.getInstance();
+        mMainStateInfoViewModel.addMainStateInfoListener(this, this);
+        mMainStateInfoViewModel.addScanStateListener(this, this);
     }
 
     @Override
@@ -171,14 +142,39 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
         changFragmentListner = (ChangFragmentListner) context;
     }
 
+    /**
+     * 初始化音乐引擎
+     */
+    private void initMusicAgent() {
+        // 初始化
+        if (mMusicManager == null) {
+            mMusicManager = MusicManager.getInstance();
+        }
+        mMusicManager.init(mContext);
+        // 音频变化的监听类
+        mMusicManager.addOnAudioStatusListener(mAudioStatusChangeListener);
+        // 记录播放记录的监听
+        mMusicManager.addOnRecorListener(mOnRecordListener);
+    }
+
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (mProgressAnimator != null) {
-            mProgressAnimator.removeUpdateListener(UsbFragment.this);
-            mProgressAnimator.cancel();
-            mProgressAnimator = null;
+        Log.d("zt", "--onDestroyView----");
+        if (mMusicManager != null) {
+            mMusicManager.removeAudioStateListener(mAudioStatusChangeListener);
+            mMusicManager.stop();
         }
+        if (mMainStateInfoViewModel != null) {
+            mMainStateInfoViewModel.removeMainStateInfoListener(this);
+            mMainStateInfoViewModel.removeScanStateListener(this);
+            mMainStateInfoViewModel = null;
+        }
+        Intent intent = new Intent();
+        intent.setComponent(MEDIA_SERVICE);
+        mContext.stopService(intent);
+
     }
 
     @Override
@@ -207,14 +203,11 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         initView(view);
-        Intent intent = new Intent(mContext, AudioPlayerService.class);
-        mContext.bindService(intent, this, 0);
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        refreshState();
 //        refreshItem();
         if (music_dir.isSelected() || music_album.isSelected() || music_artist.isSelected() || music_lyric.isSelected()) {
             mLyricGroup.setVisibility(View.VISIBLE);
@@ -239,7 +232,6 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     }
 
 
-
     private void switchLyicState(int vi) {
         if (mHolderSongAlbum == null) {
             return;
@@ -259,18 +251,7 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
 
 
     private void refreshItem() {
-        if (mMediaPlayerHelper != null && musicInfoList != null && musicInfoList.size() > 0) {
-            if (scanData) {
-                int posId = mMediaPlayerHelper.getPos();
-                String path = musicInfoList.get(posId).getPath();
-                String name = musicInfoList.get(posId).getName();
-                String album = musicInfoList.get(posId).getAlbum();
-                String singer = musicInfoList.get(posId).getSinger();
-                song_title.setText(name);
-                song_order.setText("(" + (posId + 1) + "/" + musicInfoList.size() + "）");
-                song_album.setText(album);
-                song_artist.setText(singer);
-            }
+        if (mMusicInfos != null && mMusicInfos.size() > 0) {
             if (currentFragment instanceof SinleFragment) {
                 ((SinleFragment) currentFragment).refreshItem();
             } else if (currentFragment instanceof AlbumFragment) {
@@ -281,37 +262,17 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
                 ((FolderFragment) currentFragment).refreshItem();
             }
         }
-
     }
 
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessage(Object o) {
         if (o instanceof MessageEvent) {
-//            MessageEvent event = (MessageEvent) o;
-//            musicInfoList = event.getMusicInfoList();
-//            int pos = event.getPos();
-//            if (mMediaPlayerHelper != null) {
-//                mMediaPlayerHelper.setPlayeData(musicInfoList);
-//                mMediaPlayerHelper.setPlayID(pos);
-//            }
-        } else if (o instanceof MainStateInfo) {
-            mainStateInfo = (MainStateInfo) o;
-            if (mainStateInfo.mConnectedState == 1 || mainStateInfo.mConnectedState == 3) {
-                if (mainStateInfo.mScanState == MainStateInfo.SCAN_STATE_END) {
-                    final List<String> path = Utils.getUSBPaths(mContext);
-                    if (path != null && path.size() > 0) {
-                        if (mainStateInfo.isBtConnectChange) {
-                            return;
-                        }
-                        showDialog(getString(R.string.text_scaning));
-                        startScanLocalMusic(path.get(0));
-
-                    }
-                }
-
-            } else {
-                resetFragment();
+            MessageEvent event = (MessageEvent) o;
+            mMusicInfos = event.getMusicInfoList();
+            int pos = event.getPos();
+            if (mMusicManager != null) {
+                mMusicManager.playMusicList(mMusicInfos, pos);
             }
         }
 
@@ -326,10 +287,6 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     }
 
     private void resetFragment() {
-        if (mMediaController != null) {
-            mMediaController.getTransportControls().pause();
-            mMediaPlayerHelper.mMediaPlayer.reset();
-        }
         music_artist.setEnabled(false);
         music_lyric.setEnabled(false);
         music_dir.setEnabled(false);
@@ -342,12 +299,16 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
         song_order.setText("顺序");
         song_album.setText("专辑名称");
         song_artist.setText("歌手");
+        switchLyicState(View.INVISIBLE);
+        cancelLirViewListener();
+        seekBar.stopProgressAnima();
         seekBar.setProgress(0);
         frameLayout.setVisibility(View.GONE);
         holdView.setVisibility(View.GONE);
         mLyricGroup.setVisibility(View.GONE);
-        music_lyric.setVisibility(View.GONE);
+        mLyricView.setVisibility(View.GONE);
         btn_play.setBackgroundResource(R.drawable.img_play);
+
     }
 
     private boolean scanData;
@@ -364,23 +325,81 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
                     scanComplete();
                     break;
                 case Constant.SCAN_COMPLETE:
-                    scanComplete();
                     scanData = true;
+                    scanComplete();
+                    break;
+                case Constant.SCAN_PCM_COMPLETE:
+                    pcmList.clear();
+                    pcmList = (List<String>) msg.obj;
+                    scanPcm = true;
+                    scanComplete();
                     break;
             }
         }
     };
 
 
-    private void refreshState() {
-        if (mMediaController != null) {
-            if (mMediaController.getPlaybackState().getState() == PlaybackStateCompat.STATE_PLAYING) {
-                btn_play.setBackgroundResource(R.drawable.img_pause);
+    @Override
+    public void onAnimationUpdate(ValueAnimator animation) {
+        if (mLyricView != null) {
+            mLyricView.setCurrentTimeMillis((int) animation.getAnimatedValue());
+        }
+
+
+    }
+
+    @Override
+    public void onChanged(Object o) {
+        if (o instanceof MainStateInfo) {
+            mainStateInfo = (MainStateInfo) o;
+            Log.d("zt", "---状态改变了--");
+            if (mainStateInfo.mConnectedState == 1 || mainStateInfo.mConnectedState == 3) {
+                if (mainStateInfo.mScanState == MainStateInfo.SCAN_STATE_END) {
+                    final List<String> path = Utils.getUSBPaths(mContext);
+                    if (path != null && path.size() > 0) {
+                        if (mainStateInfo.isBtConnectChange) {
+                            return;
+                        }
+                        Log.d("zt", "---开始扫描--");
+                        showDialog(getString(R.string.text_scaning));
+                        asyncTask = new getPCMFileAsyncTask();
+                        asyncTask.execute(path.get(0));
+                        startScanLocalMusic(path.get(0));
+                    }
+                }
+
             } else {
-                btn_play.setBackgroundResource(R.drawable.img_play);
+                resetFragment();
             }
-        } else {
-            btn_play.setBackgroundResource(R.drawable.img_play);
+        }
+    }
+
+    //在异步方法中 调用
+    private class getPCMFileAsyncTask extends AsyncTask<String, Void, List<String>> {
+        @Override
+        protected void onPreExecute() {
+
+        }
+
+        @Override
+        protected List<String> doInBackground(String... params) {
+            return getPCMFile(params[0]);
+        }
+
+        @Override
+        protected void onCancelled() {
+            super.onCancelled();
+            asyncTask.cancel(true);
+        }
+
+        @Override
+        protected void onPostExecute(List<String> dataList) {
+            Log.d("zt", "---onPostExecute---" + dataList.size());
+            msg = new Message();
+            msg.what = Constant.SCAN_PCM_COMPLETE;
+            msg.obj = dataList;
+            handler.sendMessage(msg);  //更新UI界面
+
         }
     }
 
@@ -388,46 +407,74 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
         void changeFragment(int position);
     }
 
+
     private ChangFragmentListner changFragmentListner;
 
     private void scanComplete() {
-        if (dialog != null && dialog.isShowing()) {
-            dialog.dismiss();
-        }
-        musicInfoList = dbManager.getAllMusicFromMusicTable();
-        Logger.d("zt", "---数据库的数据：----" + musicInfoList.size());
-        if (musicInfoList != null && musicInfoList.size() == 0) {
-            USBStatusDialog.getInstance(mContext, getString(R.string.no_music_usb)).show();
-            if (mainStateInfo != null) {
-                if (mainStateInfo.mConnectedState == MainStateInfo.BT_NO_AND_USB_NO || mainStateInfo.mConnectedState == MainStateInfo.BT_NO_AND_USB_YES) {
-                    finishThisFragment();
-                    getActivity().finish();
+        Log.d("zt", "---scanComplete---" + scanData+"----"+scanPcm);
+        if (scanData && scanPcm) {
+            if (dialog != null && dialog.isShowing()) {
+                dialog.dismiss();
+            }
+            Log.d("zt", "---pcm文件---" + pcmList.size());
+            if (pcmList.size() > 0) {
+                for (int i = 0; i < pcmList.size(); i++) {
+                    MusicInfoBean musicInfo = new MusicInfoBean();
+                    String path = pcmList.get(i);
+                    Log.d("zt", "---pcm文件路径---" + path);
+                    File file = new File(path);
+                    musicInfo.setTitle(file.getName());
+                    musicInfo.setSinger("未知");
+                    musicInfo.setAlbum("未知");
+                    musicInfo.setPath(path);
+                    musicInfo.setMediaId(String.valueOf( i+ 1000));
+                    long duration = Utils.getFileDuration(path);
+//                    if (duration==0){
+//                        continue;
+//                    }
+                    Log.d("zt", "---时长---" + duration);
+                    musicInfo.setDuration(duration);
+                    String parentPath = file.getParentFile().getPath();
+                    musicInfo.setParentPath(parentPath);
+                    musicInfo.setFirstLetter(ChineseToEnglish.StringToPinyinSpecial(file.getName()).toUpperCase().charAt(0) + "");
+                   mMusicInfos.add(musicInfo);
                 }
+            }
+            dbManager.updateAllMusic(mMusicInfos);
+            Log.d("zt", "---数据库的所有数据---" + dbManager.getAllMusicFromMusicTable().size());
+            if (mMusicInfos != null && mMusicInfos.size() == 0) {
+                USBStatusDialog.getInstance(mContext, getString(R.string.no_music_usb)).show();
+                if (mainStateInfo != null) {
+                    if (mainStateInfo.mConnectedState == MainStateInfo.BT_NO_AND_USB_NO || mainStateInfo.mConnectedState == MainStateInfo.BT_NO_AND_USB_YES) {
+                        finishThisFragment();
+                        getActivity().finish();
+                    }
 
+                } else {
+                    if (changFragmentListner != null) {
+                        changFragmentListner.changeFragment(1);
+                    }
+                }
             } else {
-                if (changFragmentListner != null) {
-                    changFragmentListner.changeFragment(1);
+                if (mMusicInfos.size() > 0) {
+                    music_artist.setEnabled(true);
+                    music_lyric.setEnabled(true);
+                    music_dir.setEnabled(true);
+                    music_album.setEnabled(true);
+
+                    btn_play.setEnabled(true);
+                    btn_next.setEnabled(true);
+                    btn_previous.setEnabled(true);
+                    if (mMusicManager != null) {
+                        mMusicManager.playMusicList(mMusicInfos, 0);
+                        Log.d("zt", "第一个播放的歌曲id" + mMusicInfos.get(0).getMediaId());
+                    }
                 }
+
+
             }
-        } else {
-            if (musicInfoList.size() > 0) {
-                music_artist.setEnabled(true);
-                music_lyric.setEnabled(true);
-                music_dir.setEnabled(true);
-                music_album.setEnabled(true);
-
-                btn_play.setEnabled(true);
-                btn_next.setEnabled(true);
-                btn_previous.setEnabled(true);
-                if (mMediaPlayerHelper != null) {
-                    mMediaPlayerHelper.setPlayeData(musicInfoList);
-                    mMediaPlayerHelper.setPlayID(0);
-                }
-            }
-
-
+            refreshItem();
         }
-        refreshItem();
 
     }
 
@@ -451,54 +498,74 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
         }.start();
     }
 
+    private List<String> getPCMFile(String path) {
+        List<String> files = new ArrayList<>();
+        SimpleFileVisitor<Path> finder = new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                File myFile = file.toFile();
+                String name = myFile.getName().toLowerCase();
+                if (name.endsWith("pcm") || name.endsWith("adpcm")) {
+                    files.add(myFile.getAbsolutePath());
+                    Log.d("zt", "---getImageFile---" + files.size());
+                }
+                return super.visitFile(file, attrs);
+            }
+        };
+
+        try {
+            java.nio.file.Files.walkFileTree(Paths.get(path), finder);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return files;
+
+    }
+
     private void querySong1(String filepath) {
-        String[] muiscInfoArray = new String[]{
-                MediaStore.Audio.Media.TITLE,               //歌曲名称
-                MediaStore.Audio.Media.ARTIST,              //歌曲歌手
-                MediaStore.Audio.Media.ALBUM,               //歌曲的专辑名
-                MediaStore.Audio.Media.DURATION,            //歌曲时长
-                MediaStore.Audio.Media.DATA};               //歌曲文件的全路径
         Cursor cursor = MyApplication.getContext().getContentResolver().query(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, muiscInfoArray,
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null,
                 MediaStore.Audio.Media.DATA + " like ?",
                 new String[]{filepath + "%"},
                 MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
         if (cursor != null && cursor.getCount() != 0) {
-            musicInfoList = new ArrayList<MusicInfo>();
+            mMusicInfos = new ArrayList<MusicInfoBean>();
             Log.i(TAG, "run: cursor.getCount() = " + cursor.getCount());
             while (cursor.moveToNext()) {
+                long id = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID));
                 String name = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE));
                 String singer = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST));
                 String album = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
+                int duration = cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION));
+                //long size = cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media.SIZE));
                 String path = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
+//                String musicFilename = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DISPLAY_NAME));
+//                String genre = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.MIME_TYPE));
+//                int albumArtResId = (int)cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID));
+//                String albumArtResName = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM));
                 File file = new File(path);
                 String parentPath = file.getParentFile().getPath();
-
                 name = replaseUnKnowe(name);
                 singer = replaseUnKnowe(singer);
                 album = replaseUnKnowe(album);
                 path = replaseUnKnowe(path);
 
-                MusicInfo musicInfo = new MusicInfo();
+                MusicInfoBean musicInfo = new MusicInfoBean();
 
-                musicInfo.setName(name);
+                musicInfo.setTitle(name);
                 musicInfo.setSinger(singer);
                 musicInfo.setAlbum(album);
                 musicInfo.setPath(path);
+                musicInfo.setMediaId(String.valueOf(id));
+                musicInfo.setDuration(duration);
                 Log.e(TAG, "run: parentPath = " + parentPath);
                 musicInfo.setParentPath(parentPath);
                 musicInfo.setFirstLetter(ChineseToEnglish.StringToPinyinSpecial(name).toUpperCase().charAt(0) + "");
-                musicInfoList.add(musicInfo);
-
+                mMusicInfos.add(musicInfo);
             }
-
-            //扫描完成获取一下当前播放音乐及路径
-//            curMusicId = MyMusicUtil.getIntShared(Constant.KEY_ID);
-//            curMusicPath = dbManager.getMusicPath(curMusicId);
-
-            // 根据a-z进行排序源数据
-            Collections.sort(musicInfoList);
-            dbManager.updateAllMusic(musicInfoList);
+            // 根据id进行排序源数据
+            Collections.sort(mMusicInfos);
+            dbManager.updateAllMusic(mMusicInfos);
             //扫描完成
             msg = new Message();
             msg.what = Constant.SCAN_COMPLETE;
@@ -532,8 +599,7 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
     @Override
     public void onStart() {
         super.onStart();
-        Intent startIntent = new Intent(mContext, AudioPlayerService.class);
-        mContext.startService(startIntent);
+
     }
 
     private void initView(View view) {
@@ -578,7 +644,7 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
         holdView = getActivity().findViewById(R.id.empty_view);
         mLyricGroup = view.findViewById(R.id.lyric_group);
         mLyricView = view.findViewById(R.id.custom_lyric_view);
-        mLyricView.setOnPlayerClickListener(this);
+//        mLyricView.setOnPlayerClickListener(this);
 
         mHolderSongAlbum = view.findViewById(R.id.holder_song_album);
         mHolderSongTitle = view.findViewById(R.id.holder_song_title);
@@ -594,15 +660,13 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
         switch (v.getId()) {
             case R.id.button_play:
                 //todo 播放或者暂停
-                if (mMediaController == null) {
+                if (mMusicManager == null) {
                     return;
                 }
-                if (mMediaController.getPlaybackState().getState() == PlaybackStateCompat.STATE_PLAYING) {
-                    mMediaController.getTransportControls().pause();
-                } else if (mMediaController.getPlaybackState().getState() == PlaybackStateCompat.STATE_PAUSED) {
-                    mMediaController.getTransportControls().play();
+                if (mIsPlaying) {
+                    mMusicManager.pause();
                 } else {
-                    mMediaController.getTransportControls().playFromSearch("", null);
+                    mMusicManager.play();
                 }
                 break;
             case R.id.button_mix_play:
@@ -621,17 +685,15 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
 
                 break;
             case R.id.button_previous:
-
                 //todo 上一首
-                if (mMediaController != null) {
-                    mMediaController.getTransportControls().skipToPrevious();
+                if (mMusicManager != null) {
+                    mMusicManager.skipToPrevious();
                 }
-
                 break;
             case R.id.button_next:
                 //todo 下一首
-                if (mMediaController != null) {
-                    mMediaController.getTransportControls().skipToNext();
+                if (mMusicManager != null) {
+                    mMusicManager.skipToNext();
                 }
 
                 break;
@@ -703,165 +765,203 @@ public class UsbFragment extends SubFragment implements View.OnClickListener, Se
 
     }
 
-
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
         //更新时实播放进度
-        song_progress_time.setText(turnTime(progress));
-        final int maxV = musicTime;
-        final int timeToEnd = (int) ((maxV - progress) * 1000 / 1);
-        if (timeToEnd <= 0) {
-            Logger.e(TAG, "onPlaybackStateChanged return for timeToEnd is negative");
-            return;
-        }
-        if (mProgressAnimator == null) {
+        song_progress_time.setText(Utils.formatTime(progress));
 
-            mProgressAnimator = ValueAnimator.ofInt(progress * 1000, maxV * 1000)
-                    .setDuration(timeToEnd);
-            mProgressAnimator.setInterpolator(new LinearInterpolator());
-            mProgressAnimator.addUpdateListener(UsbFragment.this);
-            mProgressAnimator.start();
-        }
     }
 
-    /**
-     * 秒转为分:秒
-     *
-     * @param second
-     * @return
-     */
-    public String turnTime(int second) {
-        int d = 0;
-        int s = 0;
-        int temp = second % 3600;
-        if (second > 3600) {
-            if (temp != 0) {
-                if (temp > 60) {
-                    d = temp / 60;
-                    if (temp % 60 != 0) {
-                        s = temp % 60;
-                    }
-                } else {
-                    s = temp;
-                }
-            }
-        } else {
-            d = second / 60;
-            if (second % 60 != 0) {
-                s = second % 60;
-            }
-        }
-        return (d > 0 ? d > 9 ? d : "0" + d : "00") + ":" + (s > 9 ? s : "0" + s);
-    }
-
-    private boolean mIsTracking = false;
 
     @Override
     public void onStartTrackingTouch(SeekBar seekBar) {
-        mIsTracking = true;
 
     }
 
     @Override
     public void onStopTrackingTouch(SeekBar seekBar) {
-        mIsTracking = false;
-        //更新拖动进度
-        mMediaPlayerHelper.getMediaPlayer().seekTo(
-                seekBar.getProgress() * mMediaPlayerHelper.getMediaPlayer().getDuration()
-                        / seekBar.getMax());
-    }
-
-    @Override
-    public void onServiceConnected(ComponentName name, IBinder iBinder) {
-        if (iBinder instanceof AudioPlayerService.ServiceBinder) {
-            try {
-                //获取服务
-                musicService = ((AudioPlayerService.ServiceBinder) iBinder).getService();
-                //获取帮助类
-                mMediaPlayerHelper = musicService.getMediaPlayerHelper();
-                //设置媒体播放回键听
-                mMediaPlayerHelper.setMediaPlayerUpdateListener(this);
-                //设置数据源
-                mMediaPlayerHelper.setPlayeData(musicInfoList);
-                //设置更新的seekBaar
-                mMediaPlayerHelper.setSeekBar(seekBar);
-                //设置媒体控制器
-                mMediaController = new MediaControllerCompat(mContext,
-                        musicService.getMediaSessionToken());
-                //注册回调
-                mMediaController.registerCallback(mMediaControllerCallback);
-            } catch (Exception e) {
-                Log.e(getClass().getName(), "serviceConnectedException==" + e.getMessage());
+        if (mMusicManager != null) {
+            if (!mIsPlaying) {
+                mMusicManager.play();
             }
+            mMusicManager.seekTo(seekBar.getProgress());
         }
-
     }
 
-    @Override
-    public void onServiceDisconnected(ComponentName name) {
+    /**
+     * 数据
+     */
+    // 是否正在播放的标识
+    private boolean mIsPlaying;
 
-    }
-
-    @Override
-    public void onCompletion(MediaPlayer mediaPlayer) {
-        //自动播放下一首
-        int playModel = SPUtils.getInstance(mContext).getInt("model", 0);
-        if (playModel == 0) {
-            mMediaController.getTransportControls().skipToNext();
-        } else if (playModel == 1) {
-            int currentId = MyMusicUtil.getIntShared(Constant.KEY_ID);
-            mMediaPlayerHelper.setPlayID(currentId - 1);
+    private void refreshPlayState(boolean mIsPlaying) {
+        if (btn_play == null) {
+            return;
+        }
+        if (mIsPlaying) {
+            btn_play.setBackgroundResource(R.drawable.img_pause);
         } else {
-            SecureRandom sr = new SecureRandom();
-            int nextId = sr.nextInt(musicInfoList.size());
-            mMediaPlayerHelper.setPlayID(nextId);
+            btn_play.setBackgroundResource(R.drawable.img_play);
+        }
+    }
+
+    /**
+     * 音频播放状态变化的回调
+     *
+     * @param playbackState
+     */
+    private void onMediaPlaybackStateChanged(PlaybackStateCompat playbackState) {
+        if (playbackState == null) {
+            return;
+        }
+        // 正在播放
+        mIsPlaying = playbackState.getState() == PlaybackStateCompat.STATE_PLAYING;
+        Log.d("zt", "-----" + mIsPlaying);
+        // 更新UI
+        refreshPlayState(mIsPlaying);
+
+        /**
+         * 设置播放进度
+         */
+        cancelLirViewListener();
+
+        final int progress = (int) playbackState.getPosition();
+        if (seekBar == null) {
+            return;
+        }
+        seekBar.setProgress(progress);
+        song_progress_time.setText(Utils.formatTime(progress));
+        switch (playbackState.getState()) {
+            case PlaybackStateCompat.STATE_PLAYING:
+                final int timeToEnd = (int) ((seekBar.getMax() - progress) / playbackState.getPlaybackSpeed());
+                if (timeToEnd <= 0) {
+                    Logger.e(TAG, "onPlaybackStateChanged return for timeToEnd is negative");
+                    return;
+                }
+                seekBar.startProgressAnima(progress, seekBar.getMax(), timeToEnd);
+                if (mProgressAnimator == null) {
+                    mProgressAnimator = ValueAnimator.ofInt(progress, seekBar.getMax())
+                            .setDuration(timeToEnd);
+                    mProgressAnimator.setInterpolator(new LinearInterpolator());
+                    mProgressAnimator.addUpdateListener(UsbFragment.this);
+                    mProgressAnimator.start();
+                }
+                break;
+            case PlaybackStateCompat.STATE_PAUSED:
+                seekBar.stopProgressAnima();
+                cancelLirViewListener();
+                break;
+
         }
 
     }
 
-    @Override
-    public void onBufferingUpdate(MediaPlayer mediaPlayer, int percent) {
-        //设置二级缓冲显示位置。
-        seekBar.setSecondaryProgress(percent);
-    }
-
-    @Override
-    public void onPrepared(MediaPlayer mediaPlayer) {
-        musicTime = mediaPlayer.getDuration() / 1000;
-        int minute = musicTime / 60;
-        int second = musicTime % 60;
-        song_duration_time.setText(minute + ":" + (second > 9 ? second : "0" + second));
+    private void cancelLirViewListener() {
         if (mProgressAnimator != null) {
             mProgressAnimator.removeUpdateListener(UsbFragment.this);
             mProgressAnimator.cancel();
             mProgressAnimator = null;
         }
-
-    }
-
-    @Override
-    public void onPlayError(MediaPlayer mediaPlayer) {
-        if (mMediaController != null) {
-            mMediaController.getTransportControls().skipToNext();
-        }
-    }
-
-    @Override
-    public void onPlayerClicked(long progress, String content) {
-        if (mMediaController != null) {
-            mMediaController.getTransportControls().seekTo(progress);
-        }
     }
 
 
-    @Override
-    public void onAnimationUpdate(ValueAnimator animation) {
-        if (mLyricView != null) {
-            mLyricView.setCurrentTimeMillis((int) animation.getAnimatedValue());
-        }
-        if (mIsTracking && mProgressAnimator != null) {
-            animation.cancel();
+    /**
+     * 播放音频数据 发生变化的回调
+     *
+     * @param mediaMetadata
+     */
+    private void onMediaMetadataChanged(MediaMetadataCompat mediaMetadata) {
+        if (mediaMetadata == null) {
             return;
         }
+
+        // 音频的标题
+        if (song_title == null) {
+            return;
+        }
+        song_title.setText(
+                mediaMetadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE));
+        // 音频作者
+
+        song_artist.setText(
+                mediaMetadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST));
+        song_album.setText(mediaMetadata.getString(MediaMetadataCompat.METADATA_KEY_ALBUM));
+
+        String id = mediaMetadata.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID);
+        for (int i=0;i<mMusicInfos.size();i++){
+            if (mMusicInfos.get(i).getMediaId().equals(id)){
+                int currentPos=i;
+                song_order.setText("（"+(currentPos+1)+"/"+mMusicInfos.size()+")");
+                break;
+            }
+
+        }
+        MyMusicUtil.setShared(Constant.KEY_ID, id);
+        Log.d("zt", "----当前播放的歌曲id--" + id);
+        refreshItem();
+        // 音频图片
+//        mAlbumArtImg.setImageBitmap(MusicLibrary.getAlbumBitmap(
+//                MainActivity.this,
+//                mediaMetadata.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)));
+
+        String path = mediaMetadata.getString(MusicMetadataConstant.CUSTOM_METADATA_TRACK_SOURCE);
+        File lyricFile = new File(path.substring(0, path.lastIndexOf(".")) + ".lrc");
+        if (lyricFile.exists()) {
+            mLyricView.reset();
+            mLyricView.setLyricFile(lyricFile, Utils.getCharset(lyricFile.getName()));
+        } else {
+            mLyricView.reset();
+        }
+        // 进度条
+        final int max = mediaMetadata != null
+                ? (int) mediaMetadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION)
+                : 0;
+        song_duration_time.setText(Utils.formatTime(max));
+        seekBar.setProgress(0);
+        seekBar.setMax(max);
     }
+
+    // ############################################################################################
+
+
+    /**
+     * 音频变化回调
+     */
+    MusicManager.OnAudioStatusChangeListener mAudioStatusChangeListener = new MusicManager.OnAudioStatusChangeListener() {
+        @Override
+        public void onPlaybackStateChanged(@NonNull PlaybackStateCompat state) {
+            // 播放音频 状态变化
+            onMediaPlaybackStateChanged(state);
+        }
+
+        @Override
+        public void onMetadataChanged(MediaMetadataCompat metadata) {
+            // 播放音频变化的回调
+            onMediaMetadataChanged(metadata);
+        }
+
+        @Override
+        public void onQueueChanged(List<MediaSessionCompat.QueueItem> queue) {
+            // TODO 播放队列发生变化
+        }
+
+    };
+
+    /**
+     * 记录播放位置的回调
+     */
+    OnSaveRecordListener mOnRecordListener = new OnSaveRecordListener() {
+        @Override
+        public void onSaveRecord(MediaMetadataCompat mediaMetadataCompat, long postion) {
+            // TODO 保存播放记录用
+
+        }
+
+        @Override
+        public void onComplete() {
+            Log.d("zt", "--播放完毕--" + seekBar.getProgress());
+        }
+    };
+
+
 }

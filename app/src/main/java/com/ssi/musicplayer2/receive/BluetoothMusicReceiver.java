@@ -6,6 +6,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.UserHandle;
+import android.util.Log;
 
 
 public class BluetoothMusicReceiver extends BroadcastReceiver{
@@ -26,6 +27,7 @@ public class BluetoothMusicReceiver extends BroadcastReceiver{
         context1.startForegroundService(intent);
         intent.setComponent(MAIN_INTENT_SERVICE);
         context.startServiceAsUser(intent, UserHandle.SYSTEM);
+        Log.d("zt","------"+action);
 //        if(BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
 //            context1.startForegroundService(intent);
 //            intent.setComponent(MAIN_INTENT_SERVICE);

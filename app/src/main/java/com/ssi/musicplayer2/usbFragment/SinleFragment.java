@@ -6,7 +6,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 import androidx.annotation.NonNull;
@@ -17,9 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.adapter.SingleAdapter;
 import com.ssi.musicplayer2.database.DBManager;
-import com.ssi.musicplayer2.database.DBNewManager;
 import com.ssi.musicplayer2.intf.OnCommonAdapterItemClick;
-import com.ssi.musicplayer2.javabean.MusicInfo;
 import com.ssi.musicplayer2.service.MessageEvent;
 import com.ssi.musicplayer2.view.MusicLibraryRecyclerView;
 
@@ -38,7 +35,7 @@ public class SinleFragment extends Fragment  {
     private MusicLibraryRecyclerView recyclerView;
     private Context mContext;
     private List<MusicInfoBean> musicInfoList = new ArrayList<>();
-    private DBNewManager dbManager;
+    private DBManager dbManager;
     private SingleAdapter adapter;
     private LinearLayoutManager linearLayoutManager;
     private int currentItem=-1;
@@ -47,7 +44,7 @@ public class SinleFragment extends Fragment  {
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         mContext=context;
-        dbManager = DBNewManager.getInstance(context);
+        dbManager = DBManager.getInstance(context);
         EventBus.getDefault().register(this);
     }
 

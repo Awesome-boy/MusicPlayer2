@@ -19,10 +19,8 @@ import com.ssi.musicplayer2.R;
 import com.ssi.musicplayer2.adapter.FolderAdapter;
 import com.ssi.musicplayer2.adapter.SingleAdapter;
 import com.ssi.musicplayer2.database.DBManager;
-import com.ssi.musicplayer2.database.DBNewManager;
 import com.ssi.musicplayer2.intf.OnCommonAdapterItemClick;
 import com.ssi.musicplayer2.javabean.FolderInfo;
-import com.ssi.musicplayer2.javabean.MusicInfo;
 import com.ssi.musicplayer2.service.MessageEvent;
 import com.ssi.musicplayer2.utils.MyMusicUtil;
 import com.ssi.musicplayer2.view.MusicLibraryRecyclerView;
@@ -42,7 +40,7 @@ public class FolderFragment extends Fragment {
     private LinearLayoutManager linearLayoutManager;
     private FolderAdapter adapter;
     private List<FolderInfo> folderInfoList = new ArrayList<>();
-    private DBNewManager dbManager;
+    private DBManager dbManager;
     private TextView tv_titlle;
     private ImageView iv_back;
     private ArrayList<FolderInfo> dbList;
@@ -53,7 +51,7 @@ public class FolderFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_single,container,false);
-        dbManager = DBNewManager.getInstance(getContext());
+        dbManager = DBManager.getInstance(getContext());
         return view;
     }
 

@@ -61,6 +61,8 @@ public class Constant {
 	public static final int SCAN_COMPLETE = 1;
 	public static final int SCAN_UPDATE = 2;
 	public static final int SCAN_NO_MUSIC = 3;
+
+	public static final int SCAN_PCM_COMPLETE =4 ;
 //	public static final int LOAD_COMPLETE = 4;
 //	public static final int LOAD_PREPARE = 5;
 //	public static final int LOAD_ERROR = 6;
@@ -118,4 +120,5 @@ public class Constant {
 
 	//主题
 	public static final String THEME="theme";
+
 }

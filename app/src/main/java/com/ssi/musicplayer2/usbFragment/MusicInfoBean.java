@@ -53,11 +53,7 @@ public class MusicInfoBean implements IMusicInfo,Comparable, Parcelable {
     @Override
     public int compareTo(Object o) {
         MusicInfoBean info = (MusicInfoBean) o;
-        if (info.getFirstLetter().equals("#"))
-            return -1;
-        if (firstLetter.equals("#"))
-            return 1;
-        return firstLetter.compareTo(info.getFirstLetter());
+        return mediaId.compareTo(info.getMediaId());
     }
 
 

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#6200EE</color>
-    <color name="colorPrimaryDark">#3700B3</color>
-    <color name="colorAccent">#03DAC5</color>
+    <color name="colorPrimary">#FF0D285D</color>
+    <color name="colorPrimaryDark">#FF0D285D</color>
+    <color name="colorAccent">#FF0D285D</color>
     <color name="main_activity_bg_color">#FF0D285D</color>
     <color name="main_activity_title_color">#FF00F0FF</color>
     <color name="drawerlayout_music_list_bg_olor">#FF000D23</color>

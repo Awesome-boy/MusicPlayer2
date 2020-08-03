@@ -1,26 +1,31 @@
 package com.ssi.musicplayer2.view;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.util.AttributeSet;
+import android.view.animation.LinearInterpolator;
 import android.widget.SeekBar;
 
 import androidx.appcompat.widget.AppCompatSeekBar;
 
-import java.util.ArrayList;
-import java.util.List;
+/**
+ * SeekBar
+ */
+public class MediaSeekBar extends AppCompatSeekBar {
 
-public class MediaSeekBar extends AppCompatSeekBar
-        implements SeekBar.OnSeekBarChangeListener{
 
-    private static final String TAG = MediaSeekBar.class.getSimpleName();
-    private List<OnSeekBarChangeListener> mOnSeekBarChangeListener = new ArrayList<>();
+    /**
+     * 数据
+     */
+    private boolean mIsTracking = false;
+
 
     public MediaSeekBar(Context context) {
-        this(context, null);
+        super(context);
     }
 
     public MediaSeekBar(Context context, AttributeSet attrs) {
-        this(context, attrs,android.R.attr.seekBarStyle);
+        super(context, attrs);
     }
 
     public MediaSeekBar(Context context, AttributeSet attrs, int defStyleAttr) {
@@ -28,61 +33,98 @@ public class MediaSeekBar extends AppCompatSeekBar
     }
 
     @Override
-    protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
-        setOnSeekBarChangeListener(this);
+    public void setOnSeekBarChangeListener(final SeekBar.OnSeekBarChangeListener listener) {
+        super.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (listener != null) {
+                    listener.onProgressChanged(seekBar, progress, fromUser);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                //
+                if (listener != null) {
+                    listener.onStartTrackingTouch(seekBar);
+                }
+                //
+                mIsTracking = true;
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                //
+                if (listener != null) {
+                    listener.onStopTrackingTouch(seekBar);
+                }
+                //
+                mIsTracking = false;
+            }
+        });
     }
 
-    @Override
-    protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-        mOnSeekBarChangeListener.clear();
-        setOnSeekBarChangeListener(null);
+
+    // #########################################################################################
+
+
+    /**
+     * 属性动画
+     */
+    private ValueAnimator mProgressAnimator;
+
+    /**
+     * 开始
+     *
+     * @param start
+     * @param end
+     * @param duration
+     */
+    public void startProgressAnima(int start, int end, int duration) {
+        // 停止播放动画
+        stopProgressAnima();
+        // 开始播放动画
+        mProgressAnimator = ValueAnimator.ofInt(start, end).setDuration(duration);
+        mProgressAnimator.setInterpolator(new LinearInterpolator());
+        mProgressAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                //
+                onProgressUpdate(animation);
+            }
+        });
+        mProgressAnimator.start();
     }
 
-
-
-
-
-    //----------------实现接口SeekBar.OnSeekBarChangeListene------------------------
-    @Override
-    public void onProgressChanged(SeekBar seekbar, int progress, boolean fromUser) {
-        for(OnSeekBarChangeListener listener : mOnSeekBarChangeListener) {
-            listener.onProgressChanged(seekbar, progress, fromUser);
+    /**
+     * 停止播放动画
+     */
+    public void stopProgressAnima() {
+        if (mProgressAnimator != null) {
+            mProgressAnimator.cancel();
+            mProgressAnimator = null;
         }
-
-    }
-
-    @Override
-    public void onStartTrackingTouch(SeekBar seekBar) {
-        for(OnSeekBarChangeListener listener : mOnSeekBarChangeListener) {
-            listener.onStartTrackingTouch(seekBar);
-        }
-    }
-
-    @Override
-    public void onStopTrackingTouch(SeekBar seekBar) {
-        for(OnSeekBarChangeListener listener : mOnSeekBarChangeListener) {
-            listener.onStopTrackingTouch(seekBar);
-        }
     }
 
 
+    // #########################################################################################
 
-
-
-
-    public void addOnSeekBarChangeListener(OnSeekBarChangeListener listener) {
-        if(mOnSeekBarChangeListener.contains(listener)) {
+    /**
+     * 更新进度
+     *
+     * @param valueAnimator
+     */
+    public void onProgressUpdate(final ValueAnimator valueAnimator) {
+        // If the user is changing the slider, cancel the animation.
+        if (mIsTracking) {
+            valueAnimator.cancel();
             return;
         }
-        mOnSeekBarChangeListener.add(listener);
+        // 设置播放进度
+        final int animatedIntValue = (int) valueAnimator.getAnimatedValue();
+        // 设置进度
+        setProgress(animatedIntValue);
     }
 
-    public void rmOnSeekBarChangeListener(OnSeekBarChangeListener listener) {
-        mOnSeekBarChangeListener.remove(listener);
-    }
 
 }
-
-

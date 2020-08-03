@@ -6,9 +6,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
-
-import com.ssi.musicplayer2.javabean.MusicInfo;
 import com.ssi.musicplayer2.javabean.PlayListInfo;
+import com.ssi.musicplayer2.usbFragment.MusicInfoBean;
 import com.ssi.musicplayer2.utils.ChineseToEnglish;
 import com.ssi.musicplayer2.utils.Constant;
 import com.ssi.musicplayer2.utils.MyMusicUtil;
@@ -70,9 +69,9 @@ public class DBManager {
         return musicCount;
     }
 
-    public List<MusicInfo> getAllMusicFromMusicTable() {
+    public List<MusicInfoBean> getAllMusicFromMusicTable() {
         Log.d(TAG, "getAllMusicFromMusicTable: ");
-        List<MusicInfo> musicInfoList = new ArrayList<>();
+        List<MusicInfoBean> musicInfoList = new ArrayList<>();
         Cursor cursor = null;
         db.beginTransaction();
         try {
@@ -90,10 +89,10 @@ public class DBManager {
         return musicInfoList;
     }
 
-    public MusicInfo getSingleMusicFromMusicTable(int id) {
+    public MusicInfoBean getSingleMusicFromMusicTable(int id) {
         Log.i(TAG, "getSingleMusicFromMusicTable: ");
-        List<MusicInfo> musicInfoList = null;
-        MusicInfo musicInfo = null;
+        List<MusicInfoBean> musicInfoList = null;
+        MusicInfoBean musicInfo = null;
         Cursor cursor = null;
         db.beginTransaction();
         try {
@@ -113,10 +112,10 @@ public class DBManager {
     }
 
 
-    public List<MusicInfo> getAllMusicFromTable(int playList) {
+    public List<MusicInfoBean> getAllMusicFromTable(int playList) {
         Log.d(TAG, "getAllMusicFromTable: ");
         List<Integer> idList = getMusicList(playList);
-        List<MusicInfo> musicList = new ArrayList<>();
+        List<MusicInfoBean> musicList = new ArrayList<>();
         for (int id : idList) {
             musicList.add(getSingleMusicFromMusicTable(id));
         }
@@ -152,8 +151,8 @@ public class DBManager {
         db.insert(DatabaseHelper.PLAY_LIST_TABLE, null, values);
     }
 
-    public List<MusicInfo> getMusicListBySinger(String singer){
-        List<MusicInfo> musicInfoList = new ArrayList<>();
+    public List<MusicInfoBean> getMusicListBySinger(String singer){
+        List<MusicInfoBean> musicInfoList = new ArrayList<>();
         Cursor cursor = null;
         db.beginTransaction();
         try{
@@ -171,8 +170,8 @@ public class DBManager {
         return musicInfoList;
     }
 
-    public List<MusicInfo> getMusicListByAlbum(String album){
-        List<MusicInfo> musicInfoList = new ArrayList<>();
+    public List<MusicInfoBean> getMusicListByAlbum(String album){
+        List<MusicInfoBean> musicInfoList = new ArrayList<>();
         Cursor cursor = null;
         db.beginTransaction();
         try{
@@ -190,8 +189,8 @@ public class DBManager {
         return musicInfoList;
     }
 
-    public List<MusicInfo> getMusicListByFolder(String folder){
-        List<MusicInfo> musicInfoList = new ArrayList<>();
+    public List<MusicInfoBean> getMusicListByFolder(String folder){
+        List<MusicInfoBean> musicInfoList = new ArrayList<>();
         Cursor cursor = null;
         db.beginTransaction();
         try{
@@ -231,8 +230,8 @@ public class DBManager {
         return list;
     }
 
-    public List<MusicInfo> getMusicListByPlaylist(int playlistId){
-        List<MusicInfo> musicInfoList = new ArrayList<>();
+    public List<MusicInfoBean> getMusicListByPlaylist(int playlistId){
+        List<MusicInfoBean> musicInfoList = new ArrayList<>();
         Cursor cursor = null;
         int id;
         db.beginTransaction();
@@ -240,7 +239,7 @@ public class DBManager {
             String sql = "select * from "+DatabaseHelper.PLAY_LISY_MUSIC_TABLE+" where "+ ID_COLUMN+" = ? ORDER BY "+ ID_COLUMN;
             cursor = db.rawQuery(sql,new String[]{""+playlistId});
             while (cursor.moveToNext()){
-                MusicInfo musicInfo = new MusicInfo();
+                MusicInfoBean musicInfo = new MusicInfoBean();
                 id =  cursor.getInt(cursor.getColumnIndex(MUSIC_ID_COLUMN));
                 musicInfo = getSingleMusicFromMusicTable(id);
                 musicInfoList.add(musicInfo);
@@ -260,28 +259,28 @@ public class DBManager {
 
 
 
-    public void insertMusicListToMusicTable(List<MusicInfo> musicInfoList) {
+    public void insertMusicListToMusicTable(List<MusicInfoBean> musicInfoList) {
         Log.d(TAG, "insertMusicListToMusicTable: ");
-        for (MusicInfo musicInfo : musicInfoList) {
+        for (MusicInfoBean musicInfo : musicInfoList) {
             insertMusicInfoToMusicTable(musicInfo);
         }
     }
 
 
     //添加歌曲到音乐表
-    public void insertMusicInfoToMusicTable(MusicInfo musicInfo) {
+    public void insertMusicInfoToMusicTable(MusicInfoBean musicInfo) {
         ContentValues values;
         Cursor cursor = null;
-        int id = 1;
+//        int id = 1;
         try {
             values = musicInfoToContentValues(musicInfo);
-            String sql = "select max(id) from " + DatabaseHelper.MUSIC_TABLE + ";";
-            cursor = db.rawQuery(sql, null);
-            if (cursor.moveToFirst()) {
-                //设置新添加的ID为最大ID+1
-                id = cursor.getInt(0) + 1;
-            }
-            values.put(ID_COLUMN, id);
+//            String sql = "select max(id) from " + DatabaseHelper.MUSIC_TABLE + ";";
+//            cursor = db.rawQuery(sql, null);
+//            if (cursor.moveToFirst()) {
+//                //设置新添加的ID为最大ID+1
+//                id = cursor.getInt(0) + 1;
+//            }
+//            values.put(ID_COLUMN, id);
 //			values.put("mylove",0);
             db.insert(DatabaseHelper.MUSIC_TABLE, null, values);
         } catch (Exception e) {
@@ -314,7 +313,7 @@ public class DBManager {
         return  result;
     }
 
-    public void updateAllMusic(List<MusicInfo> musicInfoList) {
+    public void updateAllMusic(List<MusicInfoBean> musicInfoList) {
         db.beginTransaction();
         try {
             deleteAllTable();
@@ -329,7 +328,7 @@ public class DBManager {
 
 
     //删除数据库中所有的表
-    public void deleteAllTable() {
+    public void  deleteAllTable() {
         db.execSQL("PRAGMA foreign_keys=ON");
         db.delete(DatabaseHelper.MUSIC_TABLE, null, null);
         db.delete(DatabaseHelper.LAST_PLAY_TABLE, null, null);
@@ -622,27 +621,28 @@ public class DBManager {
     }
 
     //把MusicInfo对象转为ContentValues对象
-    public ContentValues musicInfoToContentValues(MusicInfo musicInfo) {
+    public ContentValues musicInfoToContentValues(MusicInfoBean musicInfo) {
         ContentValues values = new ContentValues();
         try {
-//            values.put(DatabaseHelper.ID_COLUMN, musicInfo.getId());
-            values.put(DatabaseHelper.NAME_COLUMN, musicInfo.getName());
-            values.put(DatabaseHelper.SINGER_COLUMN, musicInfo.getSinger());
+            values.put(DatabaseHelper.ID_COLUMN, musicInfo.getMediaId());
+            values.put(DatabaseHelper.NAME_COLUMN, musicInfo.getTitle());
+            values.put(DatabaseHelper.SINGER_COLUMN, musicInfo.getArtist());
             values.put(DatabaseHelper.ALBUM_COLUMN, musicInfo.getAlbum());
             values.put(DatabaseHelper.DURATION_COLUMN, musicInfo.getDuration());
-            values.put(DatabaseHelper.PATH_COLUMN, musicInfo.getPath());
+            values.put(DatabaseHelper.PATH_COLUMN, musicInfo.getSource());
             values.put(DatabaseHelper.PARENT_PATH_COLUMN, musicInfo.getParentPath());
-            values.put(DatabaseHelper.LOVE_COLUMN, musicInfo.getLove());
-            values.put(DatabaseHelper.FIRST_LETTER_COLUMN, "" + ChineseToEnglish.StringToPinyinSpecial(musicInfo.getName()).toUpperCase().charAt(0));
+//            values.put(DatabaseHelper.LOVE_COLUMN, musicInfo.getLove());
+            values.put(DatabaseHelper.FIRST_LETTER_COLUMN, "" + ChineseToEnglish.StringToPinyinSpecial(musicInfo.getTitle()).toUpperCase().charAt(0));
         } catch (Exception e) {
             e.printStackTrace();
+
         }
         return values;
     }
 
     //把Cursor对象转为List<MusicInfo>对象
-    public List<MusicInfo> cursorToMusicList(Cursor cursor) {
-        List<MusicInfo> list = null;
+    public List<MusicInfoBean> cursorToMusicList(Cursor cursor) {
+        List<MusicInfoBean> list = null;
         try {
             if (cursor != null) {
                 list = new ArrayList<>();
@@ -651,20 +651,20 @@ public class DBManager {
                     String name = cursor.getString(cursor.getColumnIndex(DatabaseHelper.NAME_COLUMN));
                     String singer = cursor.getString(cursor.getColumnIndex(DatabaseHelper.SINGER_COLUMN));
                     String album = cursor.getString(cursor.getColumnIndex(DatabaseHelper.ALBUM_COLUMN));
-                    String duration = cursor.getString(cursor.getColumnIndex(DatabaseHelper.DURATION_COLUMN));
+                    long duration = cursor.getLong(cursor.getColumnIndex(DatabaseHelper.DURATION_COLUMN));
                     String path = cursor.getString(cursor.getColumnIndex(DatabaseHelper.PATH_COLUMN));
                     String parentPath = cursor.getString(cursor.getColumnIndex(DatabaseHelper.PARENT_PATH_COLUMN));
                     int love = cursor.getInt(cursor.getColumnIndex(DatabaseHelper.LOVE_COLUMN));
                     String firstLetter = cursor.getString(cursor.getColumnIndex(DatabaseHelper.FIRST_LETTER_COLUMN));
 
-                    MusicInfo musicInfo = new MusicInfo();
-                    musicInfo.setId(id);
-                    musicInfo.setName(name);
+                    MusicInfoBean musicInfo = new MusicInfoBean();
+                    musicInfo.setMediaId(String.valueOf(id));
+                    musicInfo.setTitle(name);
                     musicInfo.setSinger(singer);
                     musicInfo.setAlbum(album);
                     musicInfo.setPath(path);
                     musicInfo.setParentPath(parentPath);
-                    musicInfo.setLove(love);
+//                    musicInfo.setLove(love);
                     musicInfo.setDuration(duration);
                     musicInfo.setFirstLetter(firstLetter);
                     list.add(musicInfo);

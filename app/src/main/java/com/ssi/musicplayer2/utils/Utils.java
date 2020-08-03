@@ -2,13 +2,21 @@ package com.ssi.musicplayer2.utils;
 
 
 import android.content.Context;
+import android.media.MediaPlayer;
 import android.media.browse.MediaBrowser;
 import android.os.Environment;
 import android.os.storage.StorageManager;
+import android.util.Log;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -178,5 +186,21 @@ public class Utils {
 
         return data;
     }
+    public static long getFileDuration(String path){
+        MediaPlayer player = new MediaPlayer();
+        try {
+            player.setDataSource(path);  //recordingFilePath（）为音频文件的路径
+            player.prepare();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        long duration= player.getDuration();//获取音频的时间
+        Log.d("ACETEST", "### duration: " + duration);
+        player.release();//记得释放资源
+        return duration;
+    }
+
 }
 
